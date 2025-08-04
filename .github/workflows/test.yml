@@ -1,0 +1,65 @@
+name: Unit Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    name: Run Unit Tests
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        go-version: ['1.23']
+        
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ matrix.go-version }}
+        
+    - name: Cache Go modules
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/go/pkg/mod
+          ~/.cache/go-build
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+          
+    - name: Install dependencies
+      run: |
+        go mod download
+        go work sync
+        
+    - name: Run tests - clientmanager
+      run: |
+        cd clientmanager
+        go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
+        
+    - name: Run tests - httpmanager
+      run: |
+        cd httpmanager
+        go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
+        
+    - name: Run tests - logmanager
+      run: |
+        cd logmanager
+        go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
+        
+    - name: Run tests - eventmanager
+      run: |
+        cd eventmanager
+        go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
+        
+    - name: Run tests - examples
+      run: |
+        cd examples
+        go test -v -race ./...
