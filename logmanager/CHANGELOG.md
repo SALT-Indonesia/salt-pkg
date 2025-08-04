@@ -1,0 +1,49 @@
+# Changelog
+
+## [1.31.0] - 2025-07-23
+- Add comprehensive test coverage for transaction logging across all transaction types
+- Add test cases for HTTP, Consumer, Cron, gRPC, and Other transaction types
+- Add test coverage for transaction tags functionality
+- Add test coverage for complex multi-segment transaction workflows
+- Improve test coverage for trace ID propagation across nested transactions
+- Add JSONPath-based masking for advanced field filtering with support for complex JSON structures
+- Introduce `MaskingConfig` with JSONPath expressions and field pattern matching
+- Add advanced masking types: `FullMask`, `PartialMask`, and `HideMask` with configurable character visibility
+- Add `StructMask` and `StructMaskWithConfig` for flexible struct-based masking with go-masker integration
+- Add support for combining struct tags with JSONPath masking configurations
+- Enhance transaction methods with comprehensive masking support in `TxnRecord`
+- Add convenience functions for password, email, and credit card masking
+- Update integration (`lmresty`) with comprehensive masking options and examples
+- Deprecate `MaskConfigs` in favor of `MaskingConfig` with extended capabilities and backward compatibility
+
+## [1.30.0] - 2025-07-09
+- Fix lmecho middleware to properly update request context before calling handlers
+- Add Echo framework integration documentation with lmecho middleware example
+- Ensure logmanager.FromContext(ctx) works correctly in downstream operations
+
+## [1.29.0] - 2025-07-03
+- Add StartOtherSegmentWithContext function to create other segments from context.
+- Add StartOtherSegmentWithMessage function to create other segments from context and a message.
+- Modify StartOtherSegmentWithMessage to handle txn.End() internally and remove return value.
+
+## [1.28.0] - 2025-06-12
+- Add support for http.StatusTemporaryRedirect (307) as a success status code
+
+## [1.27.0] - 2025-05-16
+- Add simple logs an error with the trace ID from the context.
+
+## [1.26.0] - 2025-05-05
+- Add TraceID propagation and X-Trace-Id header support
+
+## [1.25.0] - 2025-05-05
+- Refactor transaction handling with mutex for concurrency safety
+
+## [1.24.0] - 2025-05-04
+- Add transaction cloning and async request handling
+
+## [1.23.0] - 2025-05-02
+- Add query parameters logging for http api and http client native and resty.
+
+## [1.22.0] - 2025-03-14
+- Added the ability to skip logging for request and response bodies that exceed a specified size limit.
+- Added a feature to expose all headers in HTTP requests.
