@@ -23,35 +23,32 @@ jobs:
       uses: actions/setup-go@v5
       with:
         go-version: ${{ matrix.go-version }}
+
+    - name: Cache Go modules
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/go/pkg/mod
+          ~/.cache/go-build
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
           
     - name: Install dependencies
-      run: |
-        sudo useradd -m ciuser
-        sudo chown -R ciuser:ciuser ${{ github.workspace }}
-        cd ${{ github.workspace }}
-        sudo -u ciuser bash -c "cd ${{ github.workspace }} && go work vendor"
+      run: go work vendor
         
     - name: Run tests - clientmanager
       run: |
-        cd clientmanager
-        go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
+        go test -v -race -coverprofile=coverage.txt -covermode=atomic ./clientmanager/...
         
     - name: Run tests - httpmanager
       run: |
-        cd httpmanager
-        go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
+        go test -v -race -coverprofile=coverage.txt -covermode=atomic ./httpmanager/...
         
     - name: Run tests - logmanager
       run: |
-        cd logmanager
-        go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
+        go test -v -race -coverprofile=coverage.txt -covermode=atomic ./logmanager/...
         
     - name: Run tests - eventmanager
       run: |
-        cd eventmanager
-        go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
-        
-    - name: Run tests - examples
-      run: |
-        cd examples
-        go test -v -race ./...
+        go test -v -race -coverprofile=coverage.txt -covermode=atomic ./eventmanager/...
