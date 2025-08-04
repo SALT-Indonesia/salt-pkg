@@ -7,11 +7,15 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"sync"
 
 	validator "github.com/go-playground/validator/v10"
 )
 
-var validate *validator.Validate
+var (
+	validate     *validator.Validate
+	validateOnce sync.Once
+)
 
 type callOptions struct {
 	client           *http.Client
@@ -32,9 +36,9 @@ func (c *callOptions) setOptions(options ...Option) {
 }
 
 func (c callOptions) validate() error {
-	if validate == nil {
+	validateOnce.Do(func() {
 		validate = validator.New(validator.WithRequiredStructEnabled())
-	}
+	})
 	if c.requestBody != nil {
 		if err := validate.Struct(c.requestBody); err != nil {
 			var invalidValidationError *validator.InvalidValidationError
