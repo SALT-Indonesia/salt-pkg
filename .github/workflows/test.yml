@@ -36,7 +36,7 @@ jobs:
           
     - name: Install dependencies
       run: |
-        sudo useradd -m -u 1001 ciuser
+        sudo useradd -m ciuser
         sudo chown -R ciuser:ciuser ${{ github.workspace }}
         sudo -u ciuser go work vendor
         
