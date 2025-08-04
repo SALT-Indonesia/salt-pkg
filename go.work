@@ -1,0 +1,16 @@
+go 1.23.0
+
+toolchain go1.23.4
+
+use (
+	./clientmanager
+	./eventmanager
+	./examples
+	./httpmanager
+	./logmanager
+)
+
+replace (
+	github.com/SALT-Indonesia/salt-pkg/httpmanager v0.8.0 => ./httpmanager
+	github.com/SALT-Indonesia/salt-pkg/logmanager v1.30.0 => ./logmanager
+)
