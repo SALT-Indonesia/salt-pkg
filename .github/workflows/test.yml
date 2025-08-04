@@ -36,8 +36,9 @@ jobs:
           
     - name: Install dependencies
       run: |
-        go work sync
-        go mod download
+        sudo useradd -m ciuser
+        sudo chown -R ciuser:ciuser ${{ github.workspace }}
+        sudo -u ciuser go work vendor
         
     - name: Run tests - clientmanager
       run: |
