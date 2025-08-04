@@ -7,14 +7,10 @@ on:
     branches: [ main ]
 
 jobs:
-  test:
-    name: Run Unit Tests
+  setup:
+    name: Setup Dependencies
     runs-on: ubuntu-latest
     
-    strategy:
-      matrix:
-        go-version: ['1.23']
-        
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -22,7 +18,7 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
-        go-version: ${{ matrix.go-version }}
+        go-version: '1.23'
 
     - name: Cache Go modules
       uses: actions/cache@v4
@@ -36,19 +32,130 @@ jobs:
           
     - name: Install dependencies
       run: go work vendor
+      
+    - name: Upload vendor directory
+      uses: actions/upload-artifact@v4
+      with:
+        name: vendor
+        path: vendor/
+        retention-days: 1
         
-    - name: Run tests - clientmanager
-      run: |
-        go test -v -race -coverprofile=coverage.txt -covermode=atomic ./clientmanager/...
+  test-clientmanager:
+    name: Test Client Manager
+    needs: setup
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.23'
         
-    - name: Run tests - httpmanager
-      run: |
-        go test -v -race -coverprofile=coverage.txt -covermode=atomic ./httpmanager/...
+    - name: Download vendor directory
+      uses: actions/download-artifact@v4
+      with:
+        name: vendor
+        path: vendor/
         
-    - name: Run tests - logmanager
-      run: |
-        go test -v -race -coverprofile=coverage.txt -covermode=atomic ./logmanager/...
+    - name: Run tests
+      run: go test -v -race -coverprofile=coverage-clientmanager.txt -covermode=atomic ./clientmanager/...
+      
+    - name: Upload coverage
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-clientmanager
+        path: coverage-clientmanager.txt
+        retention-days: 1
         
-    - name: Run tests - eventmanager
-      run: |
-        go test -v -race -coverprofile=coverage.txt -covermode=atomic ./eventmanager/...
+  test-httpmanager:
+    name: Test HTTP Manager
+    needs: setup
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.23'
+        
+    - name: Download vendor directory
+      uses: actions/download-artifact@v4
+      with:
+        name: vendor
+        path: vendor/
+        
+    - name: Run tests
+      run: go test -v -race -coverprofile=coverage-httpmanager.txt -covermode=atomic ./httpmanager/...
+      
+    - name: Upload coverage
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-httpmanager
+        path: coverage-httpmanager.txt
+        retention-days: 1
+        
+  test-logmanager:
+    name: Test Log Manager
+    needs: setup
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.23'
+        
+    - name: Download vendor directory
+      uses: actions/download-artifact@v4
+      with:
+        name: vendor
+        path: vendor/
+        
+    - name: Run tests
+      run: go test -v -race -coverprofile=coverage-logmanager.txt -covermode=atomic ./logmanager/...
+      
+    - name: Upload coverage
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-logmanager
+        path: coverage-logmanager.txt
+        retention-days: 1
+        
+  test-eventmanager:
+    name: Test Event Manager
+    needs: setup
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.23'
+        
+    - name: Download vendor directory
+      uses: actions/download-artifact@v4
+      with:
+        name: vendor
+        path: vendor/
+        
+    - name: Run tests
+      run: go test -v -race -coverprofile=coverage-eventmanager.txt -covermode=atomic ./eventmanager/...
+      
+    - name: Upload coverage
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-eventmanager
+        path: coverage-eventmanager.txt
+        retention-days: 1
