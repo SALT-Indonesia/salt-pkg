@@ -38,7 +38,8 @@ jobs:
       run: |
         sudo useradd -m ciuser
         sudo chown -R ciuser:ciuser ${{ github.workspace }}
-        sudo -u ciuser go work vendor
+        cd ${{ github.workspace }}
+        sudo -u ciuser bash -c "cd ${{ github.workspace }} && go work vendor"
         
     - name: Run tests - clientmanager
       run: |
