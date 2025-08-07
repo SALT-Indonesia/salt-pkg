@@ -2,10 +2,10 @@
 
 ## [1.32.0] - 2025-08-07
 - Add `LogInfoWithContext` function for structured info logging with context support
-- New feature supports automatic trace ID extraction from context or transaction
-- Optional third parameter allows adding custom fields to log entries
+- The new feature supports automatic trace ID extraction from context or transaction
+- The optional third parameter allows adding custom fields to log entries
 - Graceful handling of nil contexts and empty messages
-- Comprehensive test coverage with 6 test scenarios covering all edge cases
+- Comprehensive test coverage with six test scenarios covering all edge cases
 - Consistent with existing `LogErrorWithContext` pattern and functionality
 
 ## [1.31.0] - 2025-07-23
@@ -25,14 +25,14 @@
 - Deprecate `MaskConfigs` in favor of `MaskingConfig` with extended capabilities and backward compatibility
 
 ## [1.30.0] - 2025-07-09
-- Fix lmecho middleware to properly update request context before calling handlers
-- Add Echo framework integration documentation with lmecho middleware example
+- Fix `lmecho` middleware to properly update request context before calling handlers
+- Add Echo framework integration documentation with `lmecho` middleware example
 - Ensure logmanager.FromContext(ctx) works correctly in downstream operations
 
 ## [1.29.0] - 2025-07-03
 - Add StartOtherSegmentWithContext function to create other segments from context.
 - Add StartOtherSegmentWithMessage function to create other segments from context and a message.
-- Modify StartOtherSegmentWithMessage to handle txn.End() internally and remove return value.
+- Modify StartOtherSegmentWithMessage to handle txn.End() internally and remove the return value.
 
 ## [1.28.0] - 2025-06-12
 - Add support for http.StatusTemporaryRedirect (307) as a success status code
