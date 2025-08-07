@@ -559,6 +559,44 @@ func processData(ctx context.Context, data []byte) error {
 }
 ```
 
+### Info Logging with Context
+
+Log informational messages with trace ID from context and optional additional fields:
+
+```go
+func processUserLogin(ctx context.Context, userID string) error {
+    // Basic info logging with trace ID
+    logmanager.LogInfoWithContext(ctx, "User login attempt started")
+    
+    // Info logging with additional fields
+    fields := map[string]string{
+        "user_id":    userID,
+        "session_id": "session-abc123",
+        "action":     "login",
+    }
+    logmanager.LogInfoWithContext(ctx, "User authenticated successfully", fields)
+    
+    return nil
+}
+```
+
+**Function Signature:**
+```go
+func LogInfoWithContext(ctx context.Context, msg string, fields ...map[string]string)
+```
+
+**Parameters:**
+- `ctx` - Context containing trace ID or transaction
+- `msg` - Info message to log
+- `fields` - Optional additional fields to include in the log (variadic parameter)
+
+**Features:**
+- Automatically extracts trace ID from context or transaction
+- Supports optional additional fields for structured logging
+- Handles nil contexts gracefully
+- Uses JSON formatter for consistent output
+- Safe to use in concurrent environments
+
 ### Goroutine Support
 
 Safely use transactions in goroutines:
