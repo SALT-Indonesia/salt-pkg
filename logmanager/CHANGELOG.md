@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.32.0] - 2025-08-07
+- Add `LogInfoWithContext` function for structured info logging with context support
+- New feature supports automatic trace ID extraction from context or transaction
+- Optional third parameter allows adding custom fields to log entries
+- Graceful handling of nil contexts and empty messages
+- Comprehensive test coverage with 6 test scenarios covering all edge cases
+- Consistent with existing `LogErrorWithContext` pattern and functionality
+
 ## [1.31.0] - 2025-07-23
 - Add comprehensive test coverage for transaction logging across all transaction types
 - Add test cases for HTTP, Consumer, Cron, gRPC, and Other transaction types
