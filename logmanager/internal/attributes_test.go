@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -492,6 +493,128 @@ func TestAttributeValues_IsNotEmpty(t *testing.T) {
 			attr := tt.setup()
 			result := attr.IsNotEmpty(tt.id)
 			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+// Test the toObj function improvements for array handling
+func TestToObjArrayHandling(t *testing.T) {
+	// Since toObj is not exported, we'll test it indirectly through RequestBodyAttributes
+	tests := []struct {
+		name         string
+		jsonBody     string
+		expectedType string
+		description  string
+	}{
+		{
+			name:         "object JSON body",
+			jsonBody:     `{"user": "alice", "token": "secret123"}`,
+			expectedType: "map[string]interface {}",
+			description:  "Should parse object JSON into map",
+		},
+		{
+			name:         "array JSON body",
+			jsonBody:     `[{"user": "bob", "token": "secret456"}, {"user": "charlie", "token": "secret789"}]`,
+			expectedType: "[]interface {}",
+			description:  "Should parse array JSON into slice",
+		},
+		{
+			name:         "simple array",
+			jsonBody:     `["value1", "value2", "value3"]`,
+			expectedType: "[]interface {}",
+			description:  "Should handle simple value arrays",
+		},
+		{
+			name:         "nested structure",
+			jsonBody:     `{"users": [{"name": "admin", "token": "adminToken"}], "config": {"apiKey": "sk-123"}}`,
+			expectedType: "map[string]interface {}",
+			description:  "Should handle complex nested structures",
+		},
+		{
+			name:         "invalid JSON",
+			jsonBody:     `{invalid json}`,
+			expectedType: "map[string]interface {}",
+			description:  "Should fallback to map for invalid JSON",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create request with JSON body
+			req, err := http.NewRequest("POST", "http://example.com", strings.NewReader(tt.jsonBody))
+			assert.NoError(t, err)
+			req.Header.Set("Content-Type", "application/json")
+			
+			// Process through RequestBodyAttributes which uses toObj
+			attrs := internal.NewAttributes()
+			internal.RequestBodyAttributes(attrs, req)
+			
+			// Get the processed body
+			body := attrs.Value().Get(internal.AttributeRequestBody)
+			
+			if body != nil {
+				bodyType := reflect.TypeOf(body).String()
+				t.Logf("Test: %s", tt.name)
+				t.Logf("Input: %s", tt.jsonBody)
+				t.Logf("Output type: %s", bodyType)
+				t.Logf("Output value: %+v", body)
+				
+				// Verify the type matches expected
+				assert.Contains(t, bodyType, tt.expectedType, tt.description)
+			} else {
+				// For invalid JSON, body might be nil or empty map
+				t.Logf("Body is nil for input: %s", tt.jsonBody)
+			}
+		})
+	}
+}
+
+// TestRequestBodyAttributesWithArrays specifically tests array handling improvements
+func TestRequestBodyAttributesWithArrays(t *testing.T) {
+	tests := []struct {
+		name           string
+		jsonBody       string
+		expectedLength int
+		description    string
+	}{
+		{
+			name:           "array of objects",
+			jsonBody:       `[{"id": 1, "name": "first"}, {"id": 2, "name": "second"}]`,
+			expectedLength: 2,
+			description:    "Should preserve array structure",
+		},
+		{
+			name:           "empty array",
+			jsonBody:       `[]`,
+			expectedLength: 0,
+			description:    "Should handle empty arrays",
+		},
+		{
+			name:           "single element array",
+			jsonBody:       `[{"single": "element"}]`,
+			expectedLength: 1,
+			description:    "Should handle single element arrays",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req, err := http.NewRequest("POST", "http://example.com", strings.NewReader(tt.jsonBody))
+			assert.NoError(t, err)
+			
+			attrs := internal.NewAttributes()
+			internal.RequestBodyAttributes(attrs, req)
+			
+			body := attrs.Value().Get(internal.AttributeRequestBody)
+			assert.NotNil(t, body, "Request body should not be nil")
+			
+			// Check if it's an array
+			if arr, ok := body.([]interface{}); ok {
+				assert.Equal(t, tt.expectedLength, len(arr), tt.description)
+				t.Logf("Successfully parsed array with %d elements", len(arr))
+			} else {
+				t.Errorf("Expected array but got %T: %+v", body, body)
+			}
 		})
 	}
 }

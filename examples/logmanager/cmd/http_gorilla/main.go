@@ -1,47 +1,55 @@
 package main
 
 import (
-	"examples/logmanager/internal/async"
-	"examples/logmanager/internal/echo"
+	"encoding/json"
 	"fmt"
+	"net/http"
+
 	"github.com/SALT-Indonesia/salt-pkg/logmanager"
 	"github.com/SALT-Indonesia/salt-pkg/logmanager/integrations/lmgorilla"
 	"github.com/gorilla/mux"
-	"net/http"
 )
 
 func main() {
 	app := logmanager.NewApplication(
-		logmanager.WithMaskConfigs(
-			logmanager.MaskConfigs{
+		logmanager.WithMaskingConfig(
+			[]logmanager.MaskingConfig{
+				// Recursive wildcard masking - masks field at any level
 				{
-					Field:     "credit_card",
-					Type:      logmanager.PartialMask,
+					Type:     logmanager.FullMask,
+					JSONPath: "$..token",
+				},
+				{
+					Type:     logmanager.FullMask,
+					JSONPath: "$..password",
+				},
+				{
+					Type:     logmanager.PartialMask,
+					JSONPath: "$..apiKey",
 					ShowFirst: 4,
 					ShowLast:  4,
-				},
-				{
-					Field: "phone_number",
-					Type:  logmanager.FullMask,
-				},
-				{
-					Field: "email",
-					Type:  logmanager.HideMask,
 				},
 			},
 		),
 		logmanager.WithTags("order", "transaction"),
 		logmanager.WithExposeHeaders("Content-Type", "User-Agent"),
-		//logmanager.WithDebug(),
-		// logmanager.WithTraceIDKey("xid"), (optional) add xid if you want to change key of trace id
 	)
 
 	router := mux.NewRouter()
 	router.Use(lmgorilla.Middleware(app))
 
-	router.HandleFunc("/get/native", echo.Handler{Api: echo.NewAPINative("https://postman-echo.com")}.Get).Methods(http.MethodGet)
-	router.HandleFunc("/get/resty", echo.Handler{Api: echo.NewApiResty("https://postman-echo.com")}.Get).Methods(http.MethodGet)
-	router.HandleFunc("/get/async", async.Handler{}.Get).Methods(http.MethodGet)
+	router.HandleFunc("/post/json", func(w http.ResponseWriter, r *http.Request) {
+		// Read the body
+		var body interface{}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		// Write the body back to the response
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(body)
+	}).Methods(http.MethodPost)
 
 	fmt.Println("Server is running at :8000")
 	panic(http.ListenAndServe(":8000", router))

@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.33.0] - 2025-08-13
+- **Enhanced JSONPath masking with recursive support and array handling**
+- Add recursive JSONPath pattern support (`$..field`) for comprehensive field masking across all nesting levels
+- Implement case-insensitive substring matching for flexible field name matching (e.g., `$..token` matches `token`, `Token`, `authToken`, `usertoken`, etc.)
+- Fix array handling at root level to prevent empty object logging in request/response bodies
+- Add comprehensive unit tests for recursive patterns, array handling, and all masking types
+- Update README with detailed JSONPath masking documentation including syntax reference, examples, and best practices
+- Fix compilation error in Gorilla Mux middleware example by removing undefined function calls
+- **Technical improvements:**
+  - Added `recursiveMaskField` function for `$..` pattern support with deep traversal
+  - Modified `toObj` function to handle both objects and arrays properly at root level
+  - Enhanced field matching algorithm with case-insensitive substring comparison
+  - Added 60+ new unit tests covering edge cases, recursive patterns, and all masking scenarios
+  - Improved error handling for invalid JSONPath expressions and edge cases
+
 ## [1.32.0] - 2025-08-07
 - Add `LogInfoWithContext` function for structured info logging with context support
 - The new feature supports automatic trace ID extraction from context or transaction

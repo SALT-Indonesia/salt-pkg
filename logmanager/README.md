@@ -15,7 +15,7 @@ LogManager is a comprehensive structured logging library for Go applications tha
 
 - **Transaction-based Logging**: Track complete request lifecycles with automatic timing
 - **Segment Tracking**: Monitor individual operations (API calls, database queries, etc.)
-- **Flexible Masking**: Full, partial, or complete hiding of sensitive fields
+- **Flexible Masking**: Full, partial, or complete hiding of sensitive fields with recursive JSONPath support
 - **Async Support**: Safe transaction cloning for goroutines
 - **Customizable**: Extensive configuration options for different use cases
 
@@ -52,13 +52,17 @@ import (
 )
 
 func main() {
-    // Configure LogManager
+    // Configure LogManager with comprehensive masking
     app := logmanager.NewApplication(
         logmanager.WithService("user-service"),
         logmanager.WithDebug(),
         logmanager.WithMaskingConfig([]logmanager.MaskingConfig{
-            {JSONPath: "$.password", Type: logmanager.FullMask},
-            {JSONPath: "$.credit_card", Type: logmanager.PartialMask},
+            // Recursive masking - masks any field containing "token" anywhere
+            {JSONPath: "$..token", Type: logmanager.FullMask},
+            // Recursive masking - masks any field containing "password" anywhere  
+            {JSONPath: "$..password", Type: logmanager.FullMask},
+            // Partial masking for API keys (show first/last 4 chars)
+            {JSONPath: "$..apiKey", Type: logmanager.PartialMask, ShowFirst: 4, ShowLast: 4},
         }),
     )
 	
@@ -104,57 +108,194 @@ app := logmanager.NewApplication(
 
 ### Data Masking Configuration
 
-Protect sensitive information in logs with flexible masking strategies:
+Protect sensitive information in logs with powerful JSONPath-based masking. LogManager supports both specific JSONPath patterns and recursive field matching.
 
+#### Masking Types
+
+| Type | Description | Example Output |
+|------|-------------|----------------|
+| `FullMask` | Replace entire value with asterisks | `"token": "************"` |
+| `PartialMask` | Show first/last characters, mask middle | `"apiKey": "sk-1***cdef"` |
+| `HideMask` | Completely hide field (single asterisk) | `"secret": "*"` |
+
+#### JSONPath Patterns
+
+**Basic Object Fields:**
 ```go
 app := logmanager.NewApplication(
     logmanager.WithMaskingConfig([]logmanager.MaskingConfig{
-        // Partial masking - show first/last characters
+        // Root level field masking
         {
-            JSONPath: "$.credit_card",
-            Type: logmanager.PartialMask,
-        },
-        // Full masking - replace entire value
-        {
-            JSONPath: "$.phone_number",
+            JSONPath: "$.password",        // Matches: {"password": "secret123"}
             Type: logmanager.FullMask,
         },
-        // Hide completely - remove from logs
         {
-            JSONPath: "$.password",
-            Type: logmanager.HideMask,
-        },
-        // Nested field masking
-        {
-            JSONPath: "$.user.ssn",
+            JSONPath: "$.apiKey",          // Matches: {"apiKey": "sk-abc123def"}
             Type: logmanager.PartialMask,
-        },
-        // Array element masking
-        {
-            JSONPath: "$.users[*].password",
-            Type: logmanager.FullMask,
+            ShowFirst: 4,
+            ShowLast: 4,
         },
     }),
 )
 ```
 
-**Example output:**
+**Nested Object Fields:**
+```go
+logmanager.WithMaskingConfig([]logmanager.MaskingConfig{
+    {
+        JSONPath: "$.user.password",       // Matches: {"user": {"password": "secret"}}
+        Type: logmanager.FullMask,
+    },
+    {
+        JSONPath: "$.credentials.token",   // Matches: {"credentials": {"token": "abc123"}}
+        Type: logmanager.FullMask,
+    },
+})
+```
+
+**Array Element Masking:**
+```go
+logmanager.WithMaskingConfig([]logmanager.MaskingConfig{
+    {
+        JSONPath: "$[*].password",         // Matches: [{"user": "alice", "password": "secret1"}]
+        Type: logmanager.FullMask,
+    },
+    {
+        JSONPath: "$.users[*].token",      // Matches: {"users": [{"token": "abc123"}]}
+        Type: logmanager.FullMask,
+    },
+})
+```
+
+**Recursive Field Masking (Advanced):**
+```go
+logmanager.WithMaskingConfig([]logmanager.MaskingConfig{
+    {
+        JSONPath: "$..token",              // Matches ANY field named "token" at any level
+        Type: logmanager.FullMask,
+    },
+    {
+        JSONPath: "$..password",           // Matches ANY field named "password" anywhere
+        Type: logmanager.FullMask,
+    },
+})
+```
+
+**Field Pattern Matching (Case-Insensitive):**
+```go
+logmanager.WithMaskingConfig([]logmanager.MaskingConfig{
+    {
+        FieldPattern: "token",             // Matches: token, Token, authToken, usertoken, etc.
+        Type: logmanager.FullMask,
+    },
+    {
+        FieldPattern: "password",          // Matches: password, PASSWORD, user_password, etc.
+        Type: logmanager.FullMask,
+    },
+})
+```
+
+#### Complete Example
+
+```go
+app := logmanager.NewApplication(
+    logmanager.WithMaskingConfig([]logmanager.MaskingConfig{
+        // Recursive masking - masks all tokens at any level
+        {
+            JSONPath: "$..token",
+            Type: logmanager.FullMask,
+        },
+        // Recursive masking - masks all passwords anywhere
+        {
+            JSONPath: "$..password", 
+            Type: logmanager.FullMask,
+        },
+        // Partial masking for API keys (show first 4, last 4 chars)
+        {
+            JSONPath: "$..apiKey",
+            Type: logmanager.PartialMask,
+            ShowFirst: 4,
+            ShowLast: 4,
+        },
+        // Hide sensitive secrets completely
+        {
+            JSONPath: "$.secret",
+            Type: logmanager.HideMask,
+        },
+        // Field pattern matching (case-insensitive)
+        {
+            FieldPattern: "creditcard",     // Matches creditCard, credit_card, CREDITCARD
+            Type: logmanager.PartialMask,
+            ShowFirst: 4,
+            ShowLast: 4,
+        },
+    }),
+)
+```
+
+#### Example Input/Output
+
+**Input:**
 ```json
 {
-    "request": {
-        "credit_card": "1234****3456",
-        "phone_number": "************",
-        "user": {
-            "name": "John Doe",
-            "ssn": "123****789"
-        }
-    },
-    "response": {
-        "status": "success"
-        // password field completely removed
+  "user": "john",
+  "token": "rootToken123",
+  "systemToken": "sysToken456",
+  "credentials": {
+    "password": "userPass789",
+    "apiKey": "sk-1234567890abcdef",
+    "nested": {
+      "token": "deepToken012"
     }
+  },
+  "users": [
+    {"name": "alice", "token": "aliceToken345", "password": "alicePass678"}
+  ],
+  "secret": "topSecret",
+  "creditCard": "1234567890123456"
 }
 ```
+
+**Output:**
+```json
+{
+  "user": "john", 
+  "token": "*************",
+  "systemToken": "***********",
+  "credentials": {
+    "password": "***********",
+    "apiKey": "sk-1********cdef",
+    "nested": {
+      "token": "*************"
+    }
+  },
+  "users": [
+    {"name": "alice", "token": "*************", "password": "************"}
+  ],
+  "secret": "*",
+  "creditCard": "1234********3456"
+}
+```
+
+#### Best Practices
+
+1. **Use Recursive Patterns** (`$..field`) for comprehensive coverage across complex nested structures
+2. **Combine JSONPath and FieldPattern** for maximum flexibility
+3. **Use PartialMask for API Keys** to maintain debuggability while protecting secrets
+4. **Use HideMask for highly sensitive data** that should never appear in logs
+5. **Test your masking configuration** with real payload examples before deploying
+
+#### Supported JSONPath Syntax
+
+| Pattern | Description | Example |
+|---------|-------------|---------|
+| `$.field` | Root level field | `{"field": "value"}` |
+| `$.nested.field` | Nested field | `{"nested": {"field": "value"}}` |
+| `$[*].field` | Array elements | `[{"field": "value1"}, {"field": "value2"}]` |
+| `$.array[*].field` | Named array elements | `{"array": [{"field": "value"}]}` |
+| `$..field` | Recursive (any level) | Matches `field` anywhere in the structure |
+
+**Note:** The `$..field` recursive pattern is case-insensitive and uses substring matching, so `$..token` will match `token`, `Token`, `authToken`, `usertoken`, etc.
 
 ### Custom Tags
 

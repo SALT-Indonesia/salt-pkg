@@ -223,10 +223,12 @@ func (m *JSONMasker) applyJSONPathMasking(data interface{}) interface{} {
 	return dataMap
 }
 
-// convertToMap converts various data types to map[string]interface{} for JSONPath processing
-func (m *JSONMasker) convertToMap(data interface{}) (map[string]interface{}, error) {
+// convertToMap converts various data types to interface{} for JSONPath processing
+func (m *JSONMasker) convertToMap(data interface{}) (interface{}, error) {
 	switch v := data.(type) {
 	case map[string]interface{}:
+		return v, nil
+	case []interface{}:
 		return v, nil
 	case map[string]string:
 		result := make(map[string]interface{})
@@ -241,7 +243,7 @@ func (m *JSONMasker) convertToMap(data interface{}) (map[string]interface{}, err
 			return nil, err
 		}
 
-		var result map[string]interface{}
+		var result interface{}
 		err = json.Unmarshal(jsonBytes, &result)
 		if err != nil {
 			return nil, err
@@ -251,10 +253,58 @@ func (m *JSONMasker) convertToMap(data interface{}) (map[string]interface{}, err
 	}
 }
 
+func (m *JSONMasker) toMap(data interface{}) (map[string]interface{}, bool) {
+	switch v := data.(type) {
+	case map[string]interface{}:
+		return v, true
+	default:
+		return nil, false
+	}
+}
+
 // applyJSONPathConfig applies a single JSONPath configuration to the data
-func (m *JSONMasker) applyJSONPathConfig(data map[string]interface{}, config MaskingConfig) map[string]interface{} {
+func (m *JSONMasker) applyJSONPathConfig(data interface{}, config MaskingConfig) interface{} {
+	// Check if this is a recursive descent pattern ($..fieldname)
+	if strings.HasPrefix(config.JSONPath, "$..") {
+		fieldName := strings.TrimPrefix(config.JSONPath, "$..")
+		return m.recursiveMaskField(data, fieldName, config)
+	}
+
+	// For array at root level with $[*] pattern, handle specially
+	if strings.HasPrefix(config.JSONPath, "$[*]") {
+		if arr, ok := data.([]interface{}); ok {
+			fieldPath := strings.TrimPrefix(config.JSONPath, "$[*].")
+			if fieldPath == config.JSONPath {
+				// No field specified after $[*], return as-is
+				return data
+			}
+			// Mask the specified field in each array element
+			result := make([]interface{}, len(arr))
+			for i, item := range arr {
+				if itemMap, ok := item.(map[string]interface{}); ok {
+					maskedItem := make(map[string]interface{})
+					for k, v := range itemMap {
+						if k == fieldPath {
+							maskedItem[k] = m.maskValueWithMaskingConfig(v, config)
+						} else {
+							maskedItem[k] = v
+						}
+					}
+					result[i] = maskedItem
+				} else {
+					result[i] = item
+				}
+			}
+			return result
+		}
+	}
+
+	// Convert to appropriate type for JSONPath processing
+	// This now handles both maps and arrays
+	processableData := data
+	
 	// Use JSONPath to find matching values
-	result, err := jsonpath.JsonPathLookup(data, config.JSONPath)
+	result, err := jsonpath.JsonPathLookup(processableData, config.JSONPath)
 	if err != nil {
 		// If JSONPath doesn't match anything, return data unchanged
 		return data
@@ -275,8 +325,36 @@ func (m *JSONMasker) applyJSONPathConfig(data map[string]interface{}, config Mas
 	return data
 }
 
+// recursiveMaskField recursively masks all occurrences of a field name at any depth
+func (m *JSONMasker) recursiveMaskField(data interface{}, fieldName string, config MaskingConfig) interface{} {
+	switch v := data.(type) {
+	case map[string]interface{}:
+		result := make(map[string]interface{})
+		for k, val := range v {
+			// Case-insensitive contains check for field name
+			if strings.Contains(strings.ToLower(k), strings.ToLower(fieldName)) {
+				// Mask this field
+				result[k] = m.maskValueWithMaskingConfig(val, config)
+			} else {
+				// Recursively process nested structures
+				result[k] = m.recursiveMaskField(val, fieldName, config)
+			}
+		}
+		return result
+	case []interface{}:
+		result := make([]interface{}, len(v))
+		for i, item := range v {
+			result[i] = m.recursiveMaskField(item, fieldName, config)
+		}
+		return result
+	default:
+		// For primitive types, return as-is
+		return v
+	}
+}
+
 // maskJSONPathValue masks a specific value found by JSONPath
-func (m *JSONMasker) maskJSONPathValue(data map[string]interface{}, jsonPath string, originalValue interface{}, config MaskingConfig) map[string]interface{} {
+func (m *JSONMasker) maskJSONPathValue(data interface{}, jsonPath string, originalValue interface{}, config MaskingConfig) interface{} {
 	maskedValue := m.maskValueWithMaskingConfig(originalValue, config)
 
 	// Replace the original value with the masked value in the data structure
@@ -285,15 +363,11 @@ func (m *JSONMasker) maskJSONPathValue(data map[string]interface{}, jsonPath str
 }
 
 // replaceValueAtPath replaces a value at the specified JSONPath with a masked value
-func (m *JSONMasker) replaceValueAtPath(data map[string]interface{}, originalValue, maskedValue interface{}) map[string]interface{} {
+func (m *JSONMasker) replaceValueAtPath(data interface{}, originalValue, maskedValue interface{}) interface{} {
 	// Use a recursive approach to find and replace the value
 	// This is a simplified implementation
 	result := m.recursiveReplace(data, originalValue, maskedValue)
-	if resultMap, ok := result.(map[string]interface{}); ok {
-		return resultMap
-	}
-	// If a result is not a map, wrap it in a map
-	return map[string]interface{}{"data": result}
+	return result
 }
 
 // recursiveReplace recursively searches for the original value and replaces it with the masked value

@@ -234,8 +234,15 @@ func ResponseCodeAttribute(a *Attributes, code int) {
 }
 
 func toObj(bodyBytes []byte) interface{} {
-	var payload map[string]interface{}
-	_ = json.Unmarshal(bodyBytes, &payload)
+	// First try to unmarshal as a generic interface{} to handle both objects and arrays
+	var payload interface{}
+	err := json.Unmarshal(bodyBytes, &payload)
+	if err != nil {
+		// If JSON unmarshaling fails, try as map[string]interface{} for backward compatibility
+		var mapPayload map[string]interface{}
+		_ = json.Unmarshal(bodyBytes, &mapPayload)
+		return mapPayload
+	}
 	return payload
 }
 
