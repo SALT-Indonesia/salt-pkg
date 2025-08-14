@@ -16,6 +16,7 @@ require (
 	google.golang.org/protobuf v1.36.6
 	github.com/SALT-Indonesia/salt-pkg/httpmanager v0.8.0
 	github.com/SALT-Indonesia/salt-pkg/logmanager v1.30.0
+	github.com/IBM/sarama v1.45.2
 )
 
 require (

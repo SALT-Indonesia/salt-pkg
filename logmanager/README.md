@@ -533,6 +533,63 @@ func processMessage(app *logmanager.Application) func(amqp.Delivery) error {
 }
 ```
 
+### Kafka
+
+```go
+import (
+    "github.com/IBM/sarama"
+    "github.com/SALT-Indonesia/salt-pkg/logmanager"
+)
+
+// Producer
+func produceMessage(app *logmanager.Application, producer sarama.SyncProducer) {
+    // Start transaction for message
+    txn := app.Start("kafka-produce", "producer", logmanager.TxnTypeOther)
+    defer txn.End()
+    
+    // Create message with trace ID in headers
+    msg := &sarama.ProducerMessage{
+        Topic: "my-topic",
+        Value: sarama.StringEncoder("message content"),
+        Headers: []sarama.RecordHeader{
+            {Key: []byte("trace-id"), Value: []byte(txn.TraceID())},
+        },
+    }
+    
+    partition, offset, err := producer.SendMessage(msg)
+    if err != nil {
+        txn.NoticeError(err)
+        return
+    }
+    
+    // Transaction automatically logs on End()
+}
+
+// Consumer
+func consumeMessage(app *logmanager.Application, message *sarama.ConsumerMessage) {
+    // Start transaction for consumed message
+    txn := app.Start("kafka-consume", "consumer", logmanager.TxnTypeConsumer)
+    defer txn.End()
+    
+    // Extract trace ID from headers if available
+    for _, header := range message.Headers {
+        if string(header.Key) == "trace-id" {
+            // Use existing trace ID for distributed tracing
+            break
+        }
+    }
+    
+    // Process message
+    err := processMessage(message.Value)
+    if err != nil {
+        txn.NoticeError(err)
+        return
+    }
+    
+    // Transaction automatically logs on End()
+}
+```
+
 ## Segment Tracking
 
 ### API Calls
