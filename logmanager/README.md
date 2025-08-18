@@ -367,8 +367,8 @@ func handler(c *gin.Context) {
 import (
     "net/http"
     "github.com/gorilla/mux"
-    lm "github.com/salt-pkg/salt-pkg/logmanager"
-    "github.com/salt-pkg/salt-pkg/logmanager/lmgorilla"
+    lm "github.com/SALT-Indonesia/salt-pkg/logmanager"
+    "github.com/SALT-Indonesia/salt-pkg/logmanager/lmgorilla"
 )
 
 func main() {
@@ -409,8 +409,8 @@ func handleUsers(w http.ResponseWriter, r *http.Request) {
 ```go
 import (
     "github.com/gin-gonic/gin"
-    lm "github.com/salt-pkg/salt-pkg/logmanager"
-    "github.com/salt-pkg/salt-pkg/logmanager/lmgin"
+    lm "github.com/SALT-Indonesia/salt-pkg/logmanager"
+    "github.com/SALT-Indonesia/salt-pkg/logmanager/lmgin"
 )
 
 func main() {
@@ -453,8 +453,8 @@ func createOrder(c *gin.Context) {
 ```go
 import (
     "github.com/labstack/echo/v4"
-    lm "github.com/salt-pkg/salt-pkg/logmanager"
-    "github.com/salt-pkg/salt-pkg/logmanager/lmecho"
+    lm "github.com/SALT-Indonesia/salt-pkg/logmanager"
+    "github.com/SALT-Indonesia/salt-pkg/logmanager/lmecho"
 )
 
 func main() {
@@ -486,8 +486,8 @@ func handleHealth(c echo.Context) error {
 ```go
 import (
     "google.golang.org/grpc"
-    lm "github.com/salt-pkg/salt-pkg/logmanager"
-    "github.com/salt-pkg/salt-pkg/logmanager/lmgrpc"
+    lm "github.com/SALT-Indonesia/salt-pkg/logmanager"
+    "github.com/SALT-Indonesia/salt-pkg/logmanager/lmgrpc"
 )
 
 func main() {
@@ -515,8 +515,8 @@ func main() {
 ```go
 import (
     amqp "github.com/rabbitmq/amqp091-go"
-    lm "github.com/salt-pkg/salt-pkg/logmanager"
-    "github.com/salt-pkg/salt-pkg/logmanager/lmrabbitmq"
+    lm "github.com/SALT-Indonesia/salt-pkg/logmanager"
+    "github.com/SALT-Indonesia/salt-pkg/logmanager/lmrabbitmq"
 )
 
 func processMessage(app *logmanager.Application) func(amqp.Delivery) error {
