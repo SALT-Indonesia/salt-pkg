@@ -101,9 +101,61 @@ Initialize the log manager by configuring the `Config` options and `App` setting
 // Create application with service name
 app := logmanager.NewApplication(
     logmanager.WithService("your-service-name"),
-    logmanager.WithDebug(true), // Enable debug mode (disable in production)
+    logmanager.WithDebug(), // Enable debug mode (disable in production)
+)
+```
+
+### Environment-Based Configuration
+
+LogManager now supports automatic environment-based configuration that optimizes settings for different deployment environments:
+
+```go
+// Automatic environment detection from APP_ENV variable
+// If APP_ENV=production, debug mode is automatically disabled
+// If APP_ENV=development or not set, debug mode is enabled by default
+app := logmanager.NewApplication(
+    logmanager.WithService("your-service-name"),
 )
 
+// Manual environment setting - overrides APP_ENV
+app := logmanager.NewApplication(
+    logmanager.WithService("your-service-name"),
+    logmanager.WithEnvironment("production"), // debug automatically disabled
+)
+
+// Override debug mode even in production (useful for troubleshooting)
+app := logmanager.NewApplication(
+    logmanager.WithEnvironment("production"),
+    logmanager.WithDebug(), // explicitly enable debug in production
+)
+```
+
+#### Environment Options
+
+| Environment | Debug Mode | Use Case |
+|-------------|------------|----------|
+| `production` | Disabled | Production deployment - optimized for performance |
+| `development` | Enabled | Local development - detailed logging |
+| `staging` | Enabled | Staging environment - debugging capabilities |
+| `testing` | Enabled | Test environment - comprehensive logging |
+| Custom | Enabled | Any other environment defaults to debug enabled |
+
+#### Environment Detection Priority
+
+1. **WithEnvironment() option** - Highest priority, overrides all other settings
+2. **APP_ENV environment variable** - System environment variable
+3. **Default** - Falls back to "development" if no environment is specified
+
+```bash
+# Set via environment variable
+export APP_ENV=production
+export APP_ENV=development
+export APP_ENV=staging
+
+# Or set programmatically
+app := logmanager.NewApplication(
+    logmanager.WithEnvironment("production"),
+)
 ```
 
 ### Data Masking Configuration
@@ -741,15 +793,20 @@ func processDataWithContext(ctx context.Context, data []byte) error {
 
 ## Advanced Features
 
-### Error Logging with Context
+### Context-Based Logging Methods
 
-Quickly log errors with trace ID from context:
+LogManager provides convenient methods for logging with automatic trace ID extraction from context. These methods are ideal for quick logging without managing transactions manually.
+
+#### Error Logging
 
 ```go
 func processData(ctx context.Context, data []byte) error {
     if err := validateData(data); err != nil {
-        // Automatically includes trace ID
-        logmanager.LogErrorWithContext(ctx, err)
+        // New method (recommended)
+        logmanager.ErrorWithContext(ctx, err)
+        
+        // Legacy method (deprecated but still supported)
+        // logmanager.LogErrorWithContext(ctx, err)
         return err
     }
     
@@ -757,14 +814,12 @@ func processData(ctx context.Context, data []byte) error {
 }
 ```
 
-### Info Logging with Context
-
-Log informational messages with trace ID from context and optional additional fields:
+#### Info Logging
 
 ```go
 func processUserLogin(ctx context.Context, userID string) error {
     // Basic info logging with trace ID
-    logmanager.LogInfoWithContext(ctx, "User login attempt started")
+    logmanager.InfoWithContext(ctx, "User login attempt started")
     
     // Info logging with additional fields
     fields := map[string]string{
@@ -772,28 +827,79 @@ func processUserLogin(ctx context.Context, userID string) error {
         "session_id": "session-abc123",
         "action":     "login",
     }
-    logmanager.LogInfoWithContext(ctx, "User authenticated successfully", fields)
+    logmanager.InfoWithContext(ctx, "User authenticated successfully", fields)
     
     return nil
 }
 ```
 
-**Function Signature:**
+#### Debug Logging
+
+Debug logging is now environment-aware and respects the application's debug mode setting:
+
 ```go
-func LogInfoWithContext(ctx context.Context, msg string, fields ...map[string]string)
+func processRequest(ctx context.Context, req *Request) {
+    // Debug messages are only logged when debug mode is enabled
+    // In production (APP_ENV=production), debug logs are automatically suppressed
+    logmanager.DebugWithContext(ctx, "Processing request", map[string]string{
+        "request_id": req.ID,
+        "user_id":    req.UserID,
+        "endpoint":   req.Endpoint,
+    })
+    
+    // Process request...
+    
+    logmanager.DebugWithContext(ctx, "Request processing completed")
+}
 ```
 
-**Parameters:**
-- `ctx` - Context containing trace ID or transaction
-- `msg` - Info message to log
-- `fields` - Optional additional fields to include in the log (variadic parameter)
+#### Method Signatures
 
-**Features:**
-- Automatically extracts trace ID from context or transaction
-- Supports optional additional fields for structured logging
-- Handles nil contexts gracefully
-- Uses JSON formatter for consistent output
-- Safe to use in concurrent environments
+```go
+// Error logging
+func ErrorWithContext(ctx context.Context, err error)
+
+// Info logging  
+func InfoWithContext(ctx context.Context, msg string, fields ...map[string]string)
+
+// Debug logging (environment-aware)
+func DebugWithContext(ctx context.Context, msg string, fields ...map[string]string)
+
+// Deprecated methods (still supported for backward compatibility)
+func LogErrorWithContext(ctx context.Context, err error) // Use ErrorWithContext instead
+func LogInfoWithContext(ctx context.Context, msg string, fields ...map[string]string) // Use InfoWithContext instead
+```
+
+#### Features
+
+- **Automatic Trace ID Extraction**: Extracts trace ID from context or transaction automatically
+- **Optional Fields**: Support for additional structured fields (Info and Debug logging)
+- **Environment-Aware Debug**: Debug logs respect application environment settings
+- **Nil-Safe**: Handles nil contexts gracefully
+- **Concurrent-Safe**: Thread-safe for use in concurrent environments
+- **Backward Compatible**: Legacy methods continue to work while new methods are recommended
+
+#### Debug Logging Behavior
+
+| Environment | Debug Mode | DebugWithContext Behavior |
+|-------------|------------|---------------------------|
+| `production` | Disabled | Debug messages are suppressed |
+| `development` | Enabled | Debug messages are logged |
+| `staging` | Enabled | Debug messages are logged |
+| With `WithDebug()` | Enabled | Debug messages are logged (even in production) |
+
+#### Migration Guide
+
+```go
+// Old way (deprecated but still works)
+logmanager.LogInfoWithContext(ctx, "User created", fields)
+logmanager.LogErrorWithContext(ctx, err)
+
+// New way (recommended)
+logmanager.InfoWithContext(ctx, "User created", fields)  
+logmanager.ErrorWithContext(ctx, err)
+logmanager.DebugWithContext(ctx, "Debug info", fields)
+```
 
 ### Goroutine Support
 

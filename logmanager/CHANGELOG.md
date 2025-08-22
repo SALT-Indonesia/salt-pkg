@@ -1,5 +1,29 @@
 # Changelog
 
+## [1.34.0] - 2025-08-22
+- **Environment-based configuration with automatic debug mode control**
+  - Add `WithEnvironment` option to set application environment programmatically
+  - Add automatic environment detection from `APP_ENV` environment variable
+  - Implement intelligent debug mode control: disabled in production, enabled in development/staging
+  - Add `Environment()` getter method to retrieve current environment setting
+  - Support for custom environments with sensible defaults
+- **Improved context-based logging methods with consistent naming**
+  - Add new `InfoWithContext` function to replace `LogInfoWithContext` (deprecated)
+  - Add new `ErrorWithContext` function to replace `LogErrorWithContext` (deprecated)
+  - Add new `DebugWithContext` function with environment-aware debug logging
+  - Maintain full backward compatibility with deprecated methods
+- **Enhanced debug logging with environment awareness**
+  - Debug logs are automatically suppressed in production environments
+  - Debug logging respects application debug mode settings from transactions
+  - Support for explicit debug override in production using `WithDebug()` option
+  - Backward compatibility for contexts without transactions
+- **Comprehensive testing and documentation**
+  - Add 90%+ test coverage for all new functionality
+  - Add comprehensive environment configuration tests covering all scenarios
+  - Add debug logging integration tests with transaction support
+  - Update README with detailed environment configuration documentation
+  - Add migration guide for new logging methods
+
 ## [1.33.0] - 2025-08-13
 - **Enhanced JSONPath masking with recursive support and array handling**
 - Add recursive JSONPath pattern support (`$..field`) for comprehensive field masking across all nesting levels

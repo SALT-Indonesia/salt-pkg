@@ -5,11 +5,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// LogErrorWithContext logs an error with the trace ID from the context.
+// ErrorWithContext logs an error with the trace ID from the context.
 // It takes a context and an error as parameters.
 // If the context is nil, it logs the error without a trace ID.
 // If the error is nil, it does nothing.
-func LogErrorWithContext(ctx context.Context, err error) {
+func ErrorWithContext(ctx context.Context, err error) {
 	if err == nil {
 		return
 	}
@@ -44,4 +44,12 @@ func LogErrorWithContext(ctx context.Context, err error) {
 	} else {
 		logger.WithField("type", "other").Error(err.Error())
 	}
+}
+
+// LogErrorWithContext is deprecated. Use ErrorWithContext instead.
+//
+// Deprecated: This function is deprecated and will be removed in a future release.
+// Please use ErrorWithContext instead.
+func LogErrorWithContext(ctx context.Context, err error) {
+	ErrorWithContext(ctx, err)
 }

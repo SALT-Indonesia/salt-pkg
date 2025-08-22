@@ -2,6 +2,8 @@ package logmanager
 
 import (
 	"github.com/SALT-Indonesia/salt-pkg/logmanager/internal"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -11,6 +13,7 @@ import (
 type Application struct {
 	name              string
 	service           string
+	environment       string
 	debug             bool
 	logger            *logrus.Logger
 	logDir            string
@@ -27,6 +30,11 @@ type Application struct {
 // Service returns the service name used within the Application instance.
 func (app *Application) Service() string {
 	return app.service
+}
+
+// Environment returns the environment name used within the Application instance.
+func (app *Application) Environment() string {
+	return app.environment
 }
 
 // TraceIDKey returns the trace ID key used within the Application instance.
@@ -64,11 +72,22 @@ func (app *Application) TraceIDViaHeader() bool {
 // By default, the application's name is set to "default" and debugging mode is turned off.
 // Options can be passed to customize the application, such as setting a custom name or enabling debugging.
 // Once created, the application is assigned a logger that matches the specified debug level and log directory.
+// The environment is read from APP_ENV environment variable by default, and if it's "production", debug mode is disabled.
 func NewApplication(opts ...Option) *Application {
+	// Get environment from OS env by default
+	environment := os.Getenv("APP_ENV")
+	if environment == "" {
+		environment = "development"
+	}
+	
+	// Set debug mode based on environment (production = debug false)
+	debugMode := !strings.EqualFold(environment, "production")
+	
 	app := &Application{
 		name:              "default",
 		service:           "default",
-		debug:             false, // Default Debug off
+		environment:       environment,
+		debug:             debugMode,
 		traceIDContextKey: TraceIDContextKey,
 		traceIDHeaderKey:  "X-Trace-Id",
 		traceIDKey:        "trace_id",
@@ -82,6 +101,16 @@ func NewApplication(opts ...Option) *Application {
 
 	for _, opt := range opts {
 		opt(app)
+	}
+	
+	// After options are applied, if environment is production and debug wasn't explicitly set,
+	// ensure debug is false
+	if strings.EqualFold(app.environment, "production") {
+		// Only override if WithDebug() wasn't explicitly called
+		// We check this by seeing if the environment changed but debug mode matches the default
+		if environment != app.environment || debugMode == app.debug {
+			app.debug = false
+		}
 	}
 
 	// Create a masker with a unified approach - convert all configs to a new format

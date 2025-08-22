@@ -74,6 +74,32 @@ func TestTraceIDContextKey(t *testing.T) {
 	}
 }
 
+func TestTraceIDKey(t *testing.T) {
+	tests := []struct {
+		name          string
+		app           *logmanager.Application
+		expectedKey   string
+	}{
+		{
+			name:        "Application with default TraceIDKey",
+			app:         logmanager.NewApplication(),
+			expectedKey: "trace_id",
+		},
+		{
+			name:        "Application with custom TraceIDKey",
+			app:         logmanager.NewApplication(logmanager.WithTraceIDKey("custom_trace_id")),
+			expectedKey: "custom_trace_id",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := tt.app.TraceIDKey()
+			assert.Equal(t, tt.expectedKey, result)
+		})
+	}
+}
+
 func TestTraceIDHeaderKey(t *testing.T) {
 	tests := []struct {
 		name              string

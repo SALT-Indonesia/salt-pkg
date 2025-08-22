@@ -97,3 +97,14 @@ func WithService(service string) Option {
 		}
 	}
 }
+
+// WithEnvironment sets the environment for the Application.
+// When environment is set to "production", debug mode is automatically disabled
+// unless explicitly set via WithDebug().
+func WithEnvironment(environment string) Option {
+	return func(app *Application) {
+		if environment != "" {
+			app.environment = environment
+		}
+	}
+}
