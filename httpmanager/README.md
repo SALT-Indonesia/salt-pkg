@@ -576,14 +576,16 @@ The static handler supports the following image formats with appropriate content
 | .bmp        | image/bmp     |
 | .tiff, .tif | image/tiff    |
 
-## Error Handling with CustomErrorV2
+## Error Handling with ResponseError
 
-The httpmanager module provides `CustomErrorV2` - a generic error type for custom JSON error responses.
+The httpmanager module provides `ResponseError` - a generic error type for custom JSON error responses.
 
-### CustomErrorV2 Structure
+> **Note:** `CustomError` is now deprecated. Please migrate to `ResponseError[T]` for more flexible and type-safe error handling. `ResponseError` allows complete customization of error response structure while preserving original errors for server-side logging.
+
+### ResponseError Structure
 
 ```go
-type CustomErrorV2[T any] struct {
+type ResponseError[T any] struct {
     Err        error // Original error (for server-side logging only)
     StatusCode int   // HTTP status code (400, 401, 422, 500, etc.)
     Body       T     // Custom JSON response structure
@@ -612,7 +614,7 @@ type ErrorResponse struct {
 func createUserHandler(ctx context.Context, req *CreateUserRequest) (*CreateUserResponse, error) {
     // Validation error - 400 status
     if req.Name == "" {
-        return nil, &httpmanager.CustomErrorV2[ErrorResponse]{
+        return nil, &httpmanager.ResponseError[ErrorResponse]{
             Err:        fmt.Errorf("name is required"),
             StatusCode: http.StatusBadRequest,
             Body: ErrorResponse{
@@ -625,7 +627,7 @@ func createUserHandler(ctx context.Context, req *CreateUserRequest) (*CreateUser
 
     // Server error - 500 status
     if req.Name == "database_error" {
-        return nil, &httpmanager.CustomErrorV2[ErrorResponse]{
+        return nil, &httpmanager.ResponseError[ErrorResponse]{
             Err:        fmt.Errorf("database connection failed"),
             StatusCode: http.StatusInternalServerError,
             Body: ErrorResponse{

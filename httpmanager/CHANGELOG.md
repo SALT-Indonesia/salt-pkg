@@ -3,16 +3,20 @@
 ## [0.13.0] - 2025-08-28
 
 ### Added
-- **CustomErrorV2 Generic Error Handling**: Added new `CustomErrorV2[T any]` generic error type for custom JSON error responses
+- **ResponseError Generic Error Handling**: Added new `ResponseError[T any]` generic error type for custom JSON error responses
 - Added detailed field documentation for `Err`, `StatusCode`, and `Body` fields with usage examples and best practices
 - Added reflection-based error detection in handler pipeline using `checkCustomErrorV2()` function
 - Added comprehensive examples in `examples/httpmanager/internal/delivery/validation/` and `examples/httpmanager/internal/delivery/customv2/`
-- Added concise README documentation focused on practical CustomErrorV2 usage
-- Enhanced error handling to support both `CustomError` (fixed format) and `CustomErrorV2` (fully customizable)
+- Added concise README documentation focused on practical ResponseError usage
+- Enhanced error handling to support both `CustomError` (fixed format) and `ResponseError` (fully customizable)
+
+### Deprecated
+- **CustomError**: Marked `CustomError` and `IsCustomError()` as deprecated in favor of `ResponseError[T]`
+- Added deprecation notices with migration guidance to use `ResponseError[T]` for more flexible error handling
 
 ### Technical Details
-- `CustomErrorV2[T]` preserves original errors in `Err` field for server-side logging while allowing custom JSON response structures
-- Reflection-based detection handles any `CustomErrorV2` type at runtime without requiring compile-time type knowledge
+- `ResponseError[T]` preserves original errors in `Err` field for server-side logging while allowing custom JSON response structures
+- Reflection-based detection handles any `ResponseError` type at runtime without requiring compile-time type knowledge
 - Automatic JSON serialization of custom error response structures using Go's `json` package
 - Support for different HTTP status codes: 400 (validation), 401 (auth), 422 (business), 500 (server)
 - Type-safe implementation using Go generics with full compile-time checking

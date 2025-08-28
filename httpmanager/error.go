@@ -5,6 +5,9 @@ import (
 )
 
 // CustomError is a custom error type that carries client-provided values for code, title, and desc
+// Deprecated: Use ResponseError[T] instead for more flexible and type-safe error handling.
+// ResponseError allows complete customization of error response structure while preserving
+// original errors for server-side logging. See examples in internal/delivery/validation/.
 type CustomError struct {
 	Err        error
 	Code       string
@@ -19,6 +22,7 @@ func (e *CustomError) Error() string {
 }
 
 // IsCustomError checks if an error is a CustomError
+// Deprecated: Use ResponseError[T] instead for more flexible error handling.
 func IsCustomError(err error) (*CustomError, bool) {
 	var customErr *CustomError
 	if errors.As(err, &customErr) {
@@ -27,8 +31,8 @@ func IsCustomError(err error) (*CustomError, bool) {
 	return nil, false
 }
 
-// CustomErrorV2 is a generic custom error type that allows clients to use their own struct for error body
-type CustomErrorV2[T any] struct {
+// ResponseError is a generic error type that allows clients to define their own response structure
+type ResponseError[T any] struct {
 	// Err preserves the original Go error for server-side logging, debugging, and error tracking.
 	// This field is not included in the JSON response sent to clients, but is available for
 	// server-side monitoring, logging middleware, and error tracking systems.
@@ -55,9 +59,9 @@ type CustomErrorV2[T any] struct {
 }
 
 // Error implements the error interface
-func (e *CustomErrorV2[T]) Error() string {
+func (e *ResponseError[T]) Error() string {
 	if e.Err != nil {
 		return e.Err.Error()
 	}
-	return "custom error with client-defined body"
+	return "response error with custom body"
 }

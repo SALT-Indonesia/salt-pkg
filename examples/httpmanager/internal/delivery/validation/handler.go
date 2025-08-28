@@ -9,14 +9,14 @@ import (
 	"github.com/SALT-Indonesia/salt-pkg/httpmanager"
 )
 
-// NewHandler demonstrates simple error handling with CustomErrorV2 (400/500 status codes)
+// NewHandler demonstrates simple error handling with ResponseError (400/500 status codes)
 func NewHandler() *httpmanager.Handler[CreateUserRequest, CreateUserResponse] {
 	return httpmanager.NewHandler(
 		http.MethodPost,
 		func(ctx context.Context, req *CreateUserRequest) (*CreateUserResponse, error) {
-			// Validation error - 400 status using CustomErrorV2
+			// Validation error - 400 status using ResponseError
 			if strings.TrimSpace(req.Name) == "" {
-				return nil, &httpmanager.CustomErrorV2[ErrorResponse]{
+				return nil, &httpmanager.ResponseError[ErrorResponse]{
 					Err:        fmt.Errorf("name is required"),
 					StatusCode: http.StatusBadRequest,
 					Body: ErrorResponse{
@@ -28,7 +28,7 @@ func NewHandler() *httpmanager.Handler[CreateUserRequest, CreateUserResponse] {
 			}
 
 			if strings.TrimSpace(req.Email) == "" {
-				return nil, &httpmanager.CustomErrorV2[ErrorResponse]{
+				return nil, &httpmanager.ResponseError[ErrorResponse]{
 					Err:        fmt.Errorf("email is required"),
 					StatusCode: http.StatusBadRequest,
 					Body: ErrorResponse{
@@ -40,7 +40,7 @@ func NewHandler() *httpmanager.Handler[CreateUserRequest, CreateUserResponse] {
 			}
 
 			if req.Age <= 0 {
-				return nil, &httpmanager.CustomErrorV2[ErrorResponse]{
+				return nil, &httpmanager.ResponseError[ErrorResponse]{
 					Err:        fmt.Errorf("invalid age"),
 					StatusCode: http.StatusBadRequest,
 					Body: ErrorResponse{
@@ -51,9 +51,9 @@ func NewHandler() *httpmanager.Handler[CreateUserRequest, CreateUserResponse] {
 				}
 			}
 
-			// Internal server error - 500 status using CustomErrorV2
+			// Internal server error - 500 status using ResponseError
 			if req.Name == "database_error" {
-				return nil, &httpmanager.CustomErrorV2[ErrorResponse]{
+				return nil, &httpmanager.ResponseError[ErrorResponse]{
 					Err:        fmt.Errorf("database connection failed"),
 					StatusCode: http.StatusInternalServerError,
 					Body: ErrorResponse{

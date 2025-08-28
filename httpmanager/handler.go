@@ -103,8 +103,8 @@ func (h *Handler[Req, Resp]) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			Data: nil,
 		}
 
-		// Check if the error implements the CustomErrorV2 interface
-		// We need to check for specific CustomErrorV2 types since Go generics don't work well with runtime type checking
+		// Check if the error implements the ResponseError interface
+		// We need to check for specific ResponseError types since Go generics don't work well with runtime type checking
 		if isCustomV2, statusCode, body := checkCustomErrorV2(err); isCustomV2 {
 			// Use client-provided custom body and status code
 			w.Header().Set("Content-Type", "application/json")
@@ -154,7 +154,7 @@ func (h *Handler[Req, Resp]) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// checkCustomErrorV2 uses reflection to check if an error is a CustomErrorV2 of any type
+// checkCustomErrorV2 uses reflection to check if an error is a ResponseError of any type
 // and returns the status code and body if it is
 func checkCustomErrorV2(err error) (bool, int, interface{}) {
 	errValue := reflect.ValueOf(err)
@@ -171,7 +171,7 @@ func checkCustomErrorV2(err error) (bool, int, interface{}) {
 	
 	errType := errValue.Type()
 	
-	// Check if the struct has the expected fields for CustomErrorV2
+	// Check if the struct has the expected fields for ResponseError
 	errField, hasErr := errType.FieldByName("Err")
 	statusField, hasStatus := errType.FieldByName("StatusCode")
 	_, hasBody := errType.FieldByName("Body")
