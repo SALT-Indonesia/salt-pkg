@@ -3,6 +3,7 @@ package httpmanager
 import (
 	"context"
 	"encoding/json"
+	"reflect"
 	"github.com/gorilla/mux"
 	"net/http"
 )
@@ -102,6 +103,17 @@ func (h *Handler[Req, Resp]) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			Data: nil,
 		}
 
+		// Check if the error implements the ResponseError interface
+		// We need to check for specific ResponseError types since Go generics don't work well with runtime type checking
+		if isCustomV2, statusCode, body := checkCustomErrorV2(err); isCustomV2 {
+			// Use client-provided custom body and status code
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(statusCode)
+			encoder := json.NewEncoder(w)
+			_ = encoder.Encode(body)
+			return
+		}
+		
 		// Check if the error is a CustomError to use client-provided values
 		if detailedErr, ok := IsCustomError(err); ok {
 			// Use client-provided values
@@ -140,4 +152,43 @@ func (h *Handler[Req, Resp]) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		encoder := json.NewEncoder(w)
 		_ = encoder.Encode(resp)
 	}
+}
+
+// checkCustomErrorV2 uses reflection to check if an error is a ResponseError of any type
+// and returns the status code and body if it is
+func checkCustomErrorV2(err error) (bool, int, interface{}) {
+	errValue := reflect.ValueOf(err)
+	
+	// Dereference pointer if necessary
+	if errValue.Kind() == reflect.Ptr {
+		errValue = errValue.Elem()
+	}
+	
+	// Check if it's a struct
+	if errValue.Kind() != reflect.Struct {
+		return false, 0, nil
+	}
+	
+	errType := errValue.Type()
+	
+	// Check if the struct has the expected fields for ResponseError
+	errField, hasErr := errType.FieldByName("Err")
+	statusField, hasStatus := errType.FieldByName("StatusCode")
+	_, hasBody := errType.FieldByName("Body")
+	
+	// Verify field types
+	if !hasErr || !hasStatus || !hasBody {
+		return false, 0, nil
+	}
+	
+	// Check field types
+	if errField.Type.String() != "error" || statusField.Type.Kind() != reflect.Int {
+		return false, 0, nil
+	}
+	
+	// Extract values
+	statusCode := int(errValue.FieldByName("StatusCode").Int())
+	body := errValue.FieldByName("Body").Interface()
+	
+	return true, statusCode, body
 }

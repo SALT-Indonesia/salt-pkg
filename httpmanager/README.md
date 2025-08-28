@@ -576,6 +576,92 @@ The static handler supports the following image formats with appropriate content
 | .bmp        | image/bmp     |
 | .tiff, .tif | image/tiff    |
 
+## Error Handling with ResponseError
+
+The httpmanager module provides `ResponseError` - a generic error type for custom JSON error responses.
+
+> **Note:** `CustomError` is now deprecated. Please migrate to `ResponseError[T]` for more flexible and type-safe error handling. `ResponseError` allows complete customization of error response structure while preserving original errors for server-side logging.
+
+### ResponseError Structure
+
+```go
+type ResponseError[T any] struct {
+    Err        error // Original error (for server-side logging only)
+    StatusCode int   // HTTP status code (400, 401, 422, 500, etc.)
+    Body       T     // Custom JSON response structure
+}
+```
+
+### Field Descriptions
+
+| Field        | Description                                                                         |
+|--------------|-------------------------------------------------------------------------------------|
+| `Err`        | Original Go error preserved for logging/debugging. Not sent to client.              |
+| `StatusCode` | HTTP status code: `400` (Bad Request), `422` (Business Error), `500` (Server Error) |
+| `Body`       | Your custom struct that gets serialized to JSON response                            |
+
+### Basic Handler Usage
+
+```go
+// Define your error response format
+type ErrorResponse struct {
+    Code    string      `json:"code"`
+    Message string      `json:"message"`
+    Data    interface{} `json:"data"`
+}
+
+// Use in handler
+func createUserHandler(ctx context.Context, req *CreateUserRequest) (*CreateUserResponse, error) {
+    // Validation error - 400 status
+    if req.Name == "" {
+        return nil, &httpmanager.ResponseError[ErrorResponse]{
+            Err:        fmt.Errorf("name is required"),
+            StatusCode: http.StatusBadRequest,
+            Body: ErrorResponse{
+                Code:    "VIRB01001",
+                Message: "Name field is required",
+                Data:    nil,
+            },
+        }
+    }
+
+    // Server error - 500 status
+    if req.Name == "database_error" {
+        return nil, &httpmanager.ResponseError[ErrorResponse]{
+            Err:        fmt.Errorf("database connection failed"),
+            StatusCode: http.StatusInternalServerError,
+            Body: ErrorResponse{
+                Code:    "VISE01001",
+                Message: "Database unavailable",
+                Data:    nil,
+            },
+        }
+    }
+
+    return &CreateUserResponse{ID: 123, Message: "User created"}, nil
+}
+```
+
+### Response Examples
+
+**400 Error:**
+```json
+{
+  "code": "VIRB01001",
+  "message": "Name field is required",
+  "data": null
+}
+```
+
+**500 Error:**
+```json
+{
+  "code": "VISE01001", 
+  "message": "Database unavailable",
+  "data": null
+}
+```
+
 ## SSL Support
 
 To enable HTTPS with SSL:

@@ -3,9 +3,10 @@ package profile
 import (
 	"context"
 	"examples/httpmanager/internal/application"
-	"github.com/SALT-Indonesia/salt-pkg/httpmanager"
 	"go/types"
 	"net/http"
+
+	"github.com/SALT-Indonesia/salt-pkg/httpmanager"
 )
 
 type Handler struct {
