@@ -2,7 +2,6 @@ package main
 
 import (
 	"examples/httpmanager/internal/application"
-	"examples/httpmanager/internal/delivery/customv2"
 	"examples/httpmanager/internal/delivery/home"
 	"examples/httpmanager/internal/delivery/product"
 	"examples/httpmanager/internal/delivery/profile"
@@ -22,8 +21,8 @@ func main() {
 	server.EnableCORS(
 		[]string{"http://localhost:3000", "https://example.com"}, // allowed origins
 		[]string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},      // allowed methods
-		[]string{"*"},                                            // allowed all headers
-		true,                                                     // allow credentials
+		[]string{"*"}, // allowed all headers
+		true,          // allow credentials
 	)
 
 	// Alternatively, you can enable CORS after server creation:
@@ -36,7 +35,6 @@ func main() {
 	server.Handle("/upload", upload.NewHandler())
 	server.Handle("/product", product.NewHandler())
 	server.Handle("/validation/create-user", validation.NewHandler())
-	server.Handle("/customv2/process-order", customv2.NewHandler())
 
 	// Path parameter routes - demonstrating Gin-like functionality
 	server.GET("/user/{id}", user.NewGetUserHandler())
