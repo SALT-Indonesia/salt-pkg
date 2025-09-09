@@ -6,6 +6,7 @@ An HTTP client manager to request HTTP endpoints.
 
 | Option                    | Example                                                      | Description                                              |
 |---------------------------|--------------------------------------------------------------|----------------------------------------------------------|
+| WithCertificates          | `WithCertificates(cert)`                                     | Add certificates.                                        |
 | WithFiles                 | `WithFiles(map[string]string{"image":"image.jpg"})`          | Include files, field name with its path, in the request. |
 | WithFormURLEncoded        | `WithFormURLEncoded()`                                       | Send the request in URL-encoded form.                    |
 | WithHeaders               | `WithHeaders(map[string][]string{"X-Trace-ID": {"abc123"}})` | Include headers in the request.                          |
