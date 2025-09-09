@@ -2,6 +2,7 @@ package clientmanager_test
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -618,6 +619,27 @@ func TestProxy(t *testing.T) {
 		assert.Nil(t, proxy)
 		assert.Error(t, err)
 	})
+}
+
+func TestCertificates(t *testing.T) {
+	app := logmanager.NewApplication()
+	txn := app.Start("test", "cli", logmanager.TxnTypeOther)
+	ctx := txn.ToContext(context.Background())
+	defer txn.End()
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer ts.Close()
+
+	res, err := clientmanager.Call[any](
+		ctx,
+		ts.URL,
+		clientmanager.WithCertificates(tls.Certificate{}), // empty certificate as dummy
+	)
+
+	assert.NotNil(t, res)
+	assert.NoError(t, err)
 }
 
 func TestAuth(t *testing.T) {
