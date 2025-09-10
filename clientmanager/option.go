@@ -150,8 +150,12 @@ func WithProxy(proxyURL string) (Option, error) {
 func WithCertificates(certificates ...tls.Certificate) Option {
 	return func(co *callOptions) {
 		if _, ok := co.client.Transport.(*http.Transport); ok {
-			co.client.Transport.(*http.Transport).TLSClientConfig = &tls.Config{
-				Certificates: certificates,
+			if co.client.Transport.(*http.Transport).TLSClientConfig != nil {
+				co.client.Transport.(*http.Transport).TLSClientConfig.Certificates = certificates
+			} else {
+				co.client.Transport.(*http.Transport).TLSClientConfig = &tls.Config{
+					Certificates: certificates,
+				}
 			}
 		}
 	}

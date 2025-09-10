@@ -664,14 +664,30 @@ func TestCertificates(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	res, err := clientmanager.Call[any](
-		ctx,
-		ts.URL,
-		clientmanager.WithCertificates(tls.Certificate{}), // empty certificate as dummy
-	)
+	certificate := tls.Certificate{} // empty certificate as dummy
 
-	assert.NotNil(t, res)
-	assert.NoError(t, err)
+	t.Run("single WithCertificates", func(t *testing.T) {
+		res, err := clientmanager.Call[any](
+			ctx,
+			ts.URL,
+			clientmanager.WithCertificates(certificate),
+		)
+
+		assert.NotNil(t, res)
+		assert.NoError(t, err)
+	})
+
+	t.Run("double WithCertificates", func(t *testing.T) {
+		res, err := clientmanager.Call[any](
+			ctx,
+			ts.URL,
+			clientmanager.WithCertificates(certificate),
+			clientmanager.WithCertificates(certificate),
+		)
+
+		assert.NotNil(t, res)
+		assert.NoError(t, err)
+	})
 }
 
 func TestAuth(t *testing.T) {
