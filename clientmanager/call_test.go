@@ -151,6 +151,38 @@ func TestCallGET(t *testing.T) {
 		assert.True(t, res.IsSuccess())
 	})
 
+	t.Run("with double insecures", func(t *testing.T) {
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			w.Header().Add("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{
+				"products": [
+					{
+						"id": 1,
+						"title": "Essence Mascara Lash Princess",
+						"price": 9.99,
+						"stock": 5
+					}
+				],
+				"total": 1,
+				"skip": 0,
+				"limit": 10
+			}`))
+		}))
+		defer ts.Close()
+
+		res, err := clientmanager.Call[product.Response](
+			ctx,
+			ts.URL,
+			clientmanager.WithInsecure(),
+			clientmanager.WithInsecure(), // the second one is to make sure that it doesn't replace the initiated TLSClientConfig
+		)
+
+		assert.NoError(t, err)
+		assert.Equal(t, http.StatusOK, res.StatusCode)
+		assert.True(t, res.IsSuccess())
+	})
+
 	t.Run("with url values", func(t *testing.T) {
 		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)

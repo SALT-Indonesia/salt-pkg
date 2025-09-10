@@ -28,8 +28,12 @@ func WithFormURLEncoded() Option {
 func WithInsecure() Option {
 	return func(co *callOptions) {
 		if _, ok := co.client.Transport.(*http.Transport); ok {
-			co.client.Transport.(*http.Transport).TLSClientConfig = &tls.Config{
-				InsecureSkipVerify: true,
+			if co.client.Transport.(*http.Transport).TLSClientConfig != nil {
+				co.client.Transport.(*http.Transport).TLSClientConfig.InsecureSkipVerify = true
+			} else {
+				co.client.Transport.(*http.Transport).TLSClientConfig = &tls.Config{
+					InsecureSkipVerify: true,
+				}
 			}
 		}
 	}
