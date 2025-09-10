@@ -2,6 +2,7 @@ package clientmanager
 
 import (
 	"crypto/tls"
+	"crypto/x509"
 	"net"
 	"net/http"
 	"net/url"
@@ -155,6 +156,20 @@ func WithCertificates(certificates ...tls.Certificate) Option {
 			} else {
 				co.client.Transport.(*http.Transport).TLSClientConfig = &tls.Config{
 					Certificates: certificates,
+				}
+			}
+		}
+	}
+}
+
+func WithRootCertificate(rootCertificate *x509.CertPool) Option {
+	return func(co *callOptions) {
+		if _, ok := co.client.Transport.(*http.Transport); ok {
+			if co.client.Transport.(*http.Transport).TLSClientConfig != nil {
+				co.client.Transport.(*http.Transport).TLSClientConfig.RootCAs = rootCertificate
+			} else {
+				co.client.Transport.(*http.Transport).TLSClientConfig = &tls.Config{
+					RootCAs: rootCertificate,
 				}
 			}
 		}

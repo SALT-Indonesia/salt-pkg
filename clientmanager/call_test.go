@@ -3,6 +3,7 @@ package clientmanager_test
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -683,6 +684,43 @@ func TestCertificates(t *testing.T) {
 			ts.URL,
 			clientmanager.WithCertificates(certificate),
 			clientmanager.WithCertificates(certificate),
+		)
+
+		assert.NotNil(t, res)
+		assert.NoError(t, err)
+	})
+}
+
+func TestRootCertificate(t *testing.T) {
+	app := logmanager.NewApplication()
+	txn := app.Start("test", "cli", logmanager.TxnTypeOther)
+	ctx := txn.ToContext(context.Background())
+	defer txn.End()
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer ts.Close()
+
+	rootCertificate := &x509.CertPool{} // empty root certificate as dummy
+
+	t.Run("single WithRootCertificate", func(t *testing.T) {
+		res, err := clientmanager.Call[any](
+			ctx,
+			ts.URL,
+			clientmanager.WithRootCertificate(rootCertificate),
+		)
+
+		assert.NotNil(t, res)
+		assert.NoError(t, err)
+	})
+
+	t.Run("double WithRootCertificate", func(t *testing.T) {
+		res, err := clientmanager.Call[any](
+			ctx,
+			ts.URL,
+			clientmanager.WithRootCertificate(rootCertificate),
+			clientmanager.WithRootCertificate(rootCertificate),
 		)
 
 		assert.NotNil(t, res)
