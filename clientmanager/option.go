@@ -2,6 +2,7 @@ package clientmanager
 
 import (
 	"crypto/tls"
+	"crypto/x509"
 	"net"
 	"net/http"
 	"net/url"
@@ -28,8 +29,12 @@ func WithFormURLEncoded() Option {
 func WithInsecure() Option {
 	return func(co *callOptions) {
 		if _, ok := co.client.Transport.(*http.Transport); ok {
-			co.client.Transport.(*http.Transport).TLSClientConfig = &tls.Config{
-				InsecureSkipVerify: true,
+			if co.client.Transport.(*http.Transport).TLSClientConfig != nil {
+				co.client.Transport.(*http.Transport).TLSClientConfig.InsecureSkipVerify = true
+			} else {
+				co.client.Transport.(*http.Transport).TLSClientConfig = &tls.Config{
+					InsecureSkipVerify: true,
+				}
 			}
 		}
 	}
@@ -146,8 +151,26 @@ func WithProxy(proxyURL string) (Option, error) {
 func WithCertificates(certificates ...tls.Certificate) Option {
 	return func(co *callOptions) {
 		if _, ok := co.client.Transport.(*http.Transport); ok {
-			co.client.Transport.(*http.Transport).TLSClientConfig = &tls.Config{
-				Certificates: certificates,
+			if co.client.Transport.(*http.Transport).TLSClientConfig != nil {
+				co.client.Transport.(*http.Transport).TLSClientConfig.Certificates = certificates
+			} else {
+				co.client.Transport.(*http.Transport).TLSClientConfig = &tls.Config{
+					Certificates: certificates,
+				}
+			}
+		}
+	}
+}
+
+func WithRootCertificate(rootCertificate *x509.CertPool) Option {
+	return func(co *callOptions) {
+		if _, ok := co.client.Transport.(*http.Transport); ok {
+			if co.client.Transport.(*http.Transport).TLSClientConfig != nil {
+				co.client.Transport.(*http.Transport).TLSClientConfig.RootCAs = rootCertificate
+			} else {
+				co.client.Transport.(*http.Transport).TLSClientConfig = &tls.Config{
+					RootCAs: rootCertificate,
+				}
 			}
 		}
 	}

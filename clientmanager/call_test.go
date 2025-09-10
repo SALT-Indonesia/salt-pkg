@@ -3,6 +3,7 @@ package clientmanager_test
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -144,6 +145,38 @@ func TestCallGET(t *testing.T) {
 			"",
 			clientmanager.WithHost(ts.URL),
 			clientmanager.WithInsecure(),
+		)
+
+		assert.NoError(t, err)
+		assert.Equal(t, http.StatusOK, res.StatusCode)
+		assert.True(t, res.IsSuccess())
+	})
+
+	t.Run("with double insecures", func(t *testing.T) {
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			w.Header().Add("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{
+				"products": [
+					{
+						"id": 1,
+						"title": "Essence Mascara Lash Princess",
+						"price": 9.99,
+						"stock": 5
+					}
+				],
+				"total": 1,
+				"skip": 0,
+				"limit": 10
+			}`))
+		}))
+		defer ts.Close()
+
+		res, err := clientmanager.Call[product.Response](
+			ctx,
+			ts.URL,
+			clientmanager.WithInsecure(),
+			clientmanager.WithInsecure(), // the second one is to make sure that it doesn't replace the initiated TLSClientConfig
 		)
 
 		assert.NoError(t, err)
@@ -632,14 +665,67 @@ func TestCertificates(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	res, err := clientmanager.Call[any](
-		ctx,
-		ts.URL,
-		clientmanager.WithCertificates(tls.Certificate{}), // empty certificate as dummy
-	)
+	certificate := tls.Certificate{} // empty certificate as dummy
 
-	assert.NotNil(t, res)
-	assert.NoError(t, err)
+	t.Run("single WithCertificates", func(t *testing.T) {
+		res, err := clientmanager.Call[any](
+			ctx,
+			ts.URL,
+			clientmanager.WithCertificates(certificate),
+		)
+
+		assert.NotNil(t, res)
+		assert.NoError(t, err)
+	})
+
+	t.Run("double WithCertificates", func(t *testing.T) {
+		res, err := clientmanager.Call[any](
+			ctx,
+			ts.URL,
+			clientmanager.WithCertificates(certificate),
+			clientmanager.WithCertificates(certificate),
+		)
+
+		assert.NotNil(t, res)
+		assert.NoError(t, err)
+	})
+}
+
+func TestRootCertificate(t *testing.T) {
+	app := logmanager.NewApplication()
+	txn := app.Start("test", "cli", logmanager.TxnTypeOther)
+	ctx := txn.ToContext(context.Background())
+	defer txn.End()
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer ts.Close()
+
+	rootCertificate := &x509.CertPool{} // empty root certificate as dummy
+
+	t.Run("single WithRootCertificate", func(t *testing.T) {
+		res, err := clientmanager.Call[any](
+			ctx,
+			ts.URL,
+			clientmanager.WithRootCertificate(rootCertificate),
+		)
+
+		assert.NotNil(t, res)
+		assert.NoError(t, err)
+	})
+
+	t.Run("double WithRootCertificate", func(t *testing.T) {
+		res, err := clientmanager.Call[any](
+			ctx,
+			ts.URL,
+			clientmanager.WithRootCertificate(rootCertificate),
+			clientmanager.WithRootCertificate(rootCertificate),
+		)
+
+		assert.NotNil(t, res)
+		assert.NoError(t, err)
+	})
 }
 
 func TestAuth(t *testing.T) {
