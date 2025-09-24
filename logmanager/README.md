@@ -420,7 +420,7 @@ import (
     "net/http"
     "github.com/gorilla/mux"
     lm "github.com/SALT-Indonesia/salt-pkg/logmanager"
-    "github.com/SALT-Indonesia/salt-pkg/logmanager/lmgorilla"
+    "github.com/SALT-Indonesia/salt-pkg/logmanager/integrations/lmgorilla"
 )
 
 func main() {
