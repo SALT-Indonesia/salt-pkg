@@ -1,5 +1,20 @@
 # Changelog
 
+## [Unreleased]
+- **Fix multipart/form-data and application/x-www-form-urlencoded request logging (#11)**
+  - Add support for logging multipart form data with form fields and file metadata
+  - Add support for logging URL-encoded form data
+  - Implement intelligent form parsing: only extracts already-parsed forms to avoid consuming request body on client-side
+  - Add `parseMultipartFormData()` for explicit parse-and-log scenarios (server-side handlers)
+  - Add `extractMultipartFormData()` to extract data from pre-parsed forms
+  - Add `parseFormData()` with body preservation for URL-encoded forms
+  - Fix body consumption issue that broke client-side HTTP requests (e.g., clientmanager)
+  - File uploads logged with metadata only: field name, filename, size, and headers (not file content)
+  - Add 8 comprehensive unit tests for multipart and URL-encoded form parsing
+  - Add 5 integration tests for end-to-end transaction logging with forms
+  - Add 4 body preservation tests to verify forms remain accessible to downstream handlers
+  - All existing tests pass with no regressions
+
 ## [1.34.0] - 2025-08-22
 - **Environment-based configuration with automatic debug mode control**
   - Add `WithEnvironment` option to set application environment programmatically

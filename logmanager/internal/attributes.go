@@ -177,11 +177,33 @@ func headerAttributes(a *Attributes, h http.Header) {
 // If the request or its body is nil, no action is taken. The request body is converted to a suitable format and stored under
 // the "request.body" key in the Attributes map. This function ensures the request's body can be read multiple times by
 // resetting the body after reading it.
+// For multipart/form-data requests, it only parses if the form has already been parsed (r.MultipartForm != nil),
+// otherwise it's likely a client request where parsing would consume the body.
 func RequestBodyAttributes(a *Attributes, r *http.Request) {
 	if nil == r {
 		return
 	}
 
+	contentType := r.Header.Get("Content-Type")
+
+	// Handle multipart/form-data only if already parsed (server-side)
+	// Don't parse on client-side as it consumes the body
+	if strings.Contains(contentType, "multipart/form-data") {
+		if r.MultipartForm != nil {
+			extractMultipartFormData(a, r)
+		}
+		headerAttributes(a, r.Header)
+		return
+	}
+
+	// Handle application/x-www-form-urlencoded
+	if strings.Contains(contentType, "application/x-www-form-urlencoded") {
+		parseFormData(a, r)
+		headerAttributes(a, r.Header)
+		return
+	}
+
+	// Handle JSON and other content types
 	if nil == r.Body {
 		return
 	}
@@ -194,6 +216,89 @@ func RequestBodyAttributes(a *Attributes, r *http.Request) {
 	}
 
 	headerAttributes(a, r.Header)
+}
+
+// extractMultipartFormData extracts already-parsed multipart/form-data fields and file information.
+// This function expects r.MultipartForm to be already populated (e.g., by server middleware or ParseMultipartForm).
+func extractMultipartFormData(a *Attributes, r *http.Request) {
+	if r.MultipartForm == nil {
+		return
+	}
+
+	formData := make(map[string]interface{})
+
+	// Extract regular form fields
+	if r.MultipartForm.Value != nil {
+		for key, values := range r.MultipartForm.Value {
+			if len(values) == 1 {
+				formData[key] = values[0]
+			} else if len(values) > 1 {
+				formData[key] = values
+			}
+		}
+	}
+
+	// Extract file information
+	if r.MultipartForm.File != nil {
+		files := make([]map[string]interface{}, 0)
+		for fieldName, fileHeaders := range r.MultipartForm.File {
+			for _, fileHeader := range fileHeaders {
+				fileInfo := map[string]interface{}{
+					"field":    fieldName,
+					"filename": fileHeader.Filename,
+					"size":     fileHeader.Size,
+					"header":   fileHeader.Header,
+				}
+				files = append(files, fileInfo)
+			}
+		}
+		if len(files) > 0 {
+			formData["_files"] = files
+		}
+	}
+
+	if len(formData) > 0 {
+		a.value.Add(AttributeRequestBody, formData)
+	}
+}
+
+// parseMultipartFormData parses multipart/form-data and extracts form fields and file information.
+// This function should be called explicitly when you want to parse AND log multipart forms (e.g., in server handlers).
+func parseMultipartFormData(a *Attributes, r *http.Request) {
+	if err := r.ParseMultipartForm(32 << 20); err != nil {
+		return
+	}
+	extractMultipartFormData(a, r)
+}
+
+// parseFormData parses application/x-www-form-urlencoded form data.
+func parseFormData(a *Attributes, r *http.Request) {
+	// Read body first and restore it after parsing
+	bodyBytes, err := io.ReadAll(r.Body)
+	if err != nil {
+		return
+	}
+	r.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+
+	if err := r.ParseForm(); err != nil {
+		return
+	}
+
+	// Restore body again after ParseForm consumed it
+	r.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+
+	formData := make(map[string]interface{})
+	for key, values := range r.Form {
+		if len(values) == 1 {
+			formData[key] = values[0]
+		} else if len(values) > 1 {
+			formData[key] = values
+		}
+	}
+
+	if len(formData) > 0 {
+		a.value.Add(AttributeRequestBody, formData)
+	}
 }
 
 // RequestBodyAttribute adds a request body to the given attributes if the body is not nil.

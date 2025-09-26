@@ -5,6 +5,7 @@ import (
 	"github.com/SALT-Indonesia/salt-pkg/logmanager/internal"
 	"github.com/stretchr/testify/assert"
 	"io"
+	"mime/multipart"
 	"net/http"
 	"net/url"
 	"reflect"
@@ -80,6 +81,204 @@ func TestRequestBodyAttributes(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestRequestBodyAttributesMultipartFormData(t *testing.T) {
+	t.Run("multipart form with text fields", func(t *testing.T) {
+		body := &bytes.Buffer{}
+		writer := multipart.NewWriter(body)
+		_ = writer.WriteField("name", "John Doe")
+		_ = writer.WriteField("email", "john@example.com")
+		_ = writer.WriteField("age", "30")
+		writer.Close()
+
+		req, _ := http.NewRequest("POST", "http://example.com/upload", body)
+		req.Header.Set("Content-Type", writer.FormDataContentType())
+
+		// Parse the form first (simulating server-side handler behavior)
+		_ = req.ParseMultipartForm(32 << 20)
+
+		attrs := internal.NewAttributes()
+		internal.RequestBodyAttributes(attrs, req)
+
+		requestBody := attrs.Value().Get(internal.AttributeRequestBody)
+		assert.NotNil(t, requestBody)
+
+		formData, ok := requestBody.(map[string]interface{})
+		assert.True(t, ok, "Request body should be a map")
+		assert.Equal(t, "John Doe", formData["name"])
+		assert.Equal(t, "john@example.com", formData["email"])
+		assert.Equal(t, "30", formData["age"])
+	})
+
+	t.Run("multipart form with file upload", func(t *testing.T) {
+		body := &bytes.Buffer{}
+		writer := multipart.NewWriter(body)
+		_ = writer.WriteField("description", "Test file upload")
+
+		part, _ := writer.CreateFormFile("document", "test.txt")
+		_, _ = part.Write([]byte("file content here"))
+		writer.Close()
+
+		req, _ := http.NewRequest("POST", "http://example.com/upload", body)
+		req.Header.Set("Content-Type", writer.FormDataContentType())
+
+		// Parse the form first (simulating server-side handler behavior)
+		_ = req.ParseMultipartForm(32 << 20)
+
+		attrs := internal.NewAttributes()
+		internal.RequestBodyAttributes(attrs, req)
+
+		requestBody := attrs.Value().Get(internal.AttributeRequestBody)
+		assert.NotNil(t, requestBody)
+
+		formData, ok := requestBody.(map[string]interface{})
+		assert.True(t, ok)
+		assert.Equal(t, "Test file upload", formData["description"])
+
+		files, ok := formData["_files"].([]map[string]interface{})
+		assert.True(t, ok, "Should have files array")
+		assert.Len(t, files, 1)
+		assert.Equal(t, "document", files[0]["field"])
+		assert.Equal(t, "test.txt", files[0]["filename"])
+		assert.Greater(t, files[0]["size"], int64(0))
+	})
+
+	t.Run("multipart form with multiple files", func(t *testing.T) {
+		body := &bytes.Buffer{}
+		writer := multipart.NewWriter(body)
+
+		part1, _ := writer.CreateFormFile("file1", "doc1.pdf")
+		_, _ = part1.Write([]byte("PDF content"))
+
+		part2, _ := writer.CreateFormFile("file2", "image.jpg")
+		_, _ = part2.Write([]byte("JPEG data"))
+
+		writer.Close()
+
+		req, _ := http.NewRequest("POST", "http://example.com/upload", body)
+		req.Header.Set("Content-Type", writer.FormDataContentType())
+
+		// Parse the form first (simulating server-side handler behavior)
+		_ = req.ParseMultipartForm(32 << 20)
+
+		attrs := internal.NewAttributes()
+		internal.RequestBodyAttributes(attrs, req)
+
+		requestBody := attrs.Value().Get(internal.AttributeRequestBody)
+		formData, ok := requestBody.(map[string]interface{})
+		assert.True(t, ok)
+
+		files, ok := formData["_files"].([]map[string]interface{})
+		assert.True(t, ok)
+		assert.Len(t, files, 2)
+	})
+
+	t.Run("multipart form with array fields", func(t *testing.T) {
+		body := &bytes.Buffer{}
+		writer := multipart.NewWriter(body)
+		_ = writer.WriteField("tags", "golang")
+		_ = writer.WriteField("tags", "testing")
+		_ = writer.WriteField("tags", "multipart")
+		writer.Close()
+
+		req, _ := http.NewRequest("POST", "http://example.com/upload", body)
+		req.Header.Set("Content-Type", writer.FormDataContentType())
+
+		// Parse the form first (simulating server-side handler behavior)
+		_ = req.ParseMultipartForm(32 << 20)
+
+		attrs := internal.NewAttributes()
+		internal.RequestBodyAttributes(attrs, req)
+
+		requestBody := attrs.Value().Get(internal.AttributeRequestBody)
+		formData, ok := requestBody.(map[string]interface{})
+		assert.True(t, ok)
+
+		tags, ok := formData["tags"].([]string)
+		assert.True(t, ok, "Tags should be an array")
+		assert.Len(t, tags, 3)
+		assert.Contains(t, tags, "golang")
+		assert.Contains(t, tags, "testing")
+		assert.Contains(t, tags, "multipart")
+	})
+
+	t.Run("empty multipart form", func(t *testing.T) {
+		body := &bytes.Buffer{}
+		writer := multipart.NewWriter(body)
+		writer.Close()
+
+		req, _ := http.NewRequest("POST", "http://example.com/upload", body)
+		req.Header.Set("Content-Type", writer.FormDataContentType())
+
+		// Parse the form first (simulating server-side handler behavior)
+		_ = req.ParseMultipartForm(32 << 20)
+
+		attrs := internal.NewAttributes()
+		internal.RequestBodyAttributes(attrs, req)
+
+		requestBody := attrs.Value().Get(internal.AttributeRequestBody)
+		assert.Nil(t, requestBody, "Empty form should result in nil request body")
+	})
+}
+
+func TestRequestBodyAttributesFormUrlEncoded(t *testing.T) {
+	t.Run("urlencoded form with text fields", func(t *testing.T) {
+		formData := url.Values{}
+		formData.Set("username", "testuser")
+		formData.Set("password", "secret123")
+		formData.Set("remember", "true")
+
+		req, _ := http.NewRequest("POST", "http://example.com/login", strings.NewReader(formData.Encode()))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+		attrs := internal.NewAttributes()
+		internal.RequestBodyAttributes(attrs, req)
+
+		requestBody := attrs.Value().Get(internal.AttributeRequestBody)
+		assert.NotNil(t, requestBody)
+
+		bodyMap, ok := requestBody.(map[string]interface{})
+		assert.True(t, ok)
+		assert.Equal(t, "testuser", bodyMap["username"])
+		assert.Equal(t, "secret123", bodyMap["password"])
+		assert.Equal(t, "true", bodyMap["remember"])
+	})
+
+	t.Run("urlencoded form with array values", func(t *testing.T) {
+		formData := url.Values{}
+		formData.Add("colors", "red")
+		formData.Add("colors", "blue")
+		formData.Add("colors", "green")
+
+		req, _ := http.NewRequest("POST", "http://example.com/submit", strings.NewReader(formData.Encode()))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+		attrs := internal.NewAttributes()
+		internal.RequestBodyAttributes(attrs, req)
+
+		requestBody := attrs.Value().Get(internal.AttributeRequestBody)
+		bodyMap, ok := requestBody.(map[string]interface{})
+		assert.True(t, ok)
+
+		colors, ok := bodyMap["colors"].([]string)
+		assert.True(t, ok)
+		assert.Len(t, colors, 3)
+		assert.Contains(t, colors, "red")
+		assert.Contains(t, colors, "blue")
+		assert.Contains(t, colors, "green")
+	})
+
+	t.Run("empty urlencoded form", func(t *testing.T) {
+		req, _ := http.NewRequest("POST", "http://example.com/submit", strings.NewReader(""))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+		attrs := internal.NewAttributes()
+		internal.RequestBodyAttributes(attrs, req)
+
+		requestBody := attrs.Value().Get(internal.AttributeRequestBody)
+		assert.Nil(t, requestBody)
+	})
 }
 
 func TestResponseBodyAttributes(t *testing.T) {
