@@ -1,12 +1,16 @@
 package logmanager_test
 
 import (
+	"bytes"
 	"github.com/SALT-Indonesia/salt-pkg/logmanager"
 	"github.com/SALT-Indonesia/salt-pkg/logmanager/internal/test/testdata"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
+	"strings"
 	"testing"
 )
 
@@ -312,4 +316,195 @@ func TestTxnRecord_End_WithMaskedData(t *testing.T) {
 	assert.True(t, app.HasLoggedField("status"), "Should log status code")
 	assert.Equal(t, 200, app.GetLoggedField("status"), "Should log correct status code")
 	assert.Equal(t, logrus.InfoLevel, app.GetLoggedLevel(), "Should log at Info level for successful transaction")
+}
+
+func TestTxnRecord_SetWebRequest_MultipartFormData(t *testing.T) {
+	app := logmanager.NewTestableApplication()
+	app.ResetLoggedEntries()
+
+	tx := app.Application.StartHttp("multipart-trace", "POST /upload")
+	txn := tx.TxnRecord
+
+	// Create multipart form request
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	_ = writer.WriteField("name", "John Doe")
+	_ = writer.WriteField("email", "john@example.com")
+	_ = writer.WriteField("age", "30")
+
+	part, _ := writer.CreateFormFile("document", "resume.pdf")
+	_, _ = part.Write([]byte("PDF content here"))
+	writer.Close()
+
+	req := httptest.NewRequest("POST", "http://example.com/upload", body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+
+	txn.SetWebRequest(req)
+	txn.SetResponseBodyAndCode([]byte(`{"status": "uploaded", "file_id": "abc123"}`), 201)
+	txn.End()
+
+	// Verify logging
+	assert.Equal(t, 1, app.CountLoggedEntries(), "Should log multipart form transaction")
+	assert.True(t, app.HasLoggedField("request"), "Should log request body")
+	assert.True(t, app.HasLoggedField("response"), "Should log response body")
+	assert.True(t, app.HasLoggedField("status"), "Should log status code")
+	assert.Equal(t, 201, app.GetLoggedField("status"), "Should log correct status code")
+
+	// Verify request contains form fields
+	requestField := app.GetLoggedField("request")
+	assert.NotNil(t, requestField, "Request field should not be nil")
+
+	requestMap, ok := requestField.(map[string]interface{})
+	assert.True(t, ok, "Request should be a map")
+	assert.Equal(t, "John Doe", requestMap["name"], "Should log name field")
+	assert.Equal(t, "john@example.com", requestMap["email"], "Should log email field")
+	assert.Equal(t, "30", requestMap["age"], "Should log age field")
+
+	// Verify file information is logged
+	filesField, ok := requestMap["_files"]
+	assert.True(t, ok, "Should have _files field")
+
+	files, ok := filesField.([]map[string]interface{})
+	assert.True(t, ok, "Files should be an array of maps")
+	assert.Len(t, files, 1, "Should have one file")
+	assert.Equal(t, "document", files[0]["field"], "Should log file field name")
+	assert.Equal(t, "resume.pdf", files[0]["filename"], "Should log filename")
+	assert.Greater(t, files[0]["size"], int64(0), "Should log file size")
+}
+
+func TestTxnRecord_SetWebRequest_MultipartFormDataMultipleFiles(t *testing.T) {
+	app := logmanager.NewTestableApplication()
+	app.ResetLoggedEntries()
+
+	tx := app.Application.StartHttp("multi-file-trace", "POST /upload-multiple")
+	txn := tx.TxnRecord
+
+	// Create multipart form with multiple files
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	_ = writer.WriteField("description", "Multiple documents")
+
+	part1, _ := writer.CreateFormFile("file1", "doc1.pdf")
+	_, _ = part1.Write([]byte("PDF document 1"))
+
+	part2, _ := writer.CreateFormFile("file2", "doc2.pdf")
+	_, _ = part2.Write([]byte("PDF document 2"))
+
+	writer.Close()
+
+	req := httptest.NewRequest("POST", "http://example.com/upload-multiple", body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+
+	txn.SetWebRequest(req)
+	txn.SetResponseBodyAndCode([]byte(`{"status": "success"}`), 200)
+	txn.End()
+
+	// Verify multiple files are logged
+	requestField := app.GetLoggedField("request")
+	requestMap, ok := requestField.(map[string]interface{})
+	assert.True(t, ok, "Request should be a map")
+
+	files, ok := requestMap["_files"].([]map[string]interface{})
+	assert.True(t, ok, "Files should be an array")
+	assert.Len(t, files, 2, "Should have two files")
+
+	// Check both files are present (order may vary due to map iteration)
+	filenames := []string{files[0]["filename"].(string), files[1]["filename"].(string)}
+	assert.Contains(t, filenames, "doc1.pdf", "Should contain doc1.pdf")
+	assert.Contains(t, filenames, "doc2.pdf", "Should contain doc2.pdf")
+}
+
+func TestTxnRecord_SetWebRequest_FormUrlEncoded(t *testing.T) {
+	app := logmanager.NewTestableApplication()
+	app.ResetLoggedEntries()
+
+	tx := app.Application.StartHttp("urlencoded-trace", "POST /login")
+	txn := tx.TxnRecord
+
+	// Create URL-encoded form request
+	formData := url.Values{}
+	formData.Set("username", "testuser")
+	formData.Set("password", "secret123")
+	formData.Set("remember", "true")
+
+	req := httptest.NewRequest("POST", "http://example.com/login", strings.NewReader(formData.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	txn.SetWebRequest(req)
+	txn.SetResponseBodyAndCode([]byte(`{"token": "jwt-token-here"}`), 200)
+	txn.End()
+
+	// Verify logging
+	assert.Equal(t, 1, app.CountLoggedEntries(), "Should log URL-encoded form transaction")
+	assert.True(t, app.HasLoggedField("request"), "Should log request body")
+
+	// Verify request contains form fields
+	requestField := app.GetLoggedField("request")
+	requestMap, ok := requestField.(map[string]interface{})
+	assert.True(t, ok, "Request should be a map")
+	assert.Equal(t, "testuser", requestMap["username"], "Should log username field")
+	// Note: password field is automatically masked by logmanager
+	assert.NotNil(t, requestMap["password"], "Password field should be present")
+	assert.Equal(t, "true", requestMap["remember"], "Should log remember field")
+}
+
+func TestTxnRecord_SetWebRequest_FormUrlEncodedArrayValues(t *testing.T) {
+	app := logmanager.NewTestableApplication()
+	app.ResetLoggedEntries()
+
+	tx := app.Application.StartHttp("array-trace", "POST /tags")
+	txn := tx.TxnRecord
+
+	// Create URL-encoded form with array values
+	formData := url.Values{}
+	formData.Add("tags", "golang")
+	formData.Add("tags", "testing")
+	formData.Add("tags", "logging")
+
+	req := httptest.NewRequest("POST", "http://example.com/tags", strings.NewReader(formData.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	txn.SetWebRequest(req)
+	txn.SetResponseBodyAndCode([]byte(`{"status": "ok"}`), 200)
+	txn.End()
+
+	// Verify array values are logged
+	requestField := app.GetLoggedField("request")
+	requestMap, ok := requestField.(map[string]interface{})
+	assert.True(t, ok, "Request should be a map")
+
+	tags, ok := requestMap["tags"].([]string)
+	assert.True(t, ok, "Tags should be an array")
+	assert.Len(t, tags, 3, "Should have three tags")
+	assert.Contains(t, tags, "golang", "Should contain golang tag")
+	assert.Contains(t, tags, "testing", "Should contain testing tag")
+	assert.Contains(t, tags, "logging", "Should contain logging tag")
+}
+
+func TestTxnRecord_SetWebRequest_JSONBody(t *testing.T) {
+	app := logmanager.NewTestableApplication()
+	app.ResetLoggedEntries()
+
+	tx := app.Application.StartHttp("json-trace", "POST /api/users")
+	txn := tx.TxnRecord
+
+	// Create JSON request (should still work as before)
+	jsonBody := `{"name": "Alice", "email": "alice@example.com", "age": 25}`
+	req := httptest.NewRequest("POST", "http://example.com/api/users", strings.NewReader(jsonBody))
+	req.Header.Set("Content-Type", "application/json")
+
+	txn.SetWebRequest(req)
+	txn.SetResponseBodyAndCode([]byte(`{"id": 456, "status": "created"}`), 201)
+	txn.End()
+
+	// Verify JSON logging still works
+	assert.Equal(t, 1, app.CountLoggedEntries(), "Should log JSON transaction")
+	assert.True(t, app.HasLoggedField("request"), "Should log request body")
+
+	requestField := app.GetLoggedField("request")
+	requestMap, ok := requestField.(map[string]interface{})
+	assert.True(t, ok, "Request should be a map")
+	assert.Equal(t, "Alice", requestMap["name"], "Should log name field")
+	assert.Equal(t, "alice@example.com", requestMap["email"], "Should log email field")
+	assert.Equal(t, float64(25), requestMap["age"], "Should log age field")
 }
