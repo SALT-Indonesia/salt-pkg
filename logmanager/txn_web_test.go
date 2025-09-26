@@ -6,6 +6,7 @@ import (
 	"github.com/SALT-Indonesia/salt-pkg/logmanager/internal/test/testdata"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
+	"io"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
@@ -507,4 +508,199 @@ func TestTxnRecord_SetWebRequest_JSONBody(t *testing.T) {
 	assert.Equal(t, "Alice", requestMap["name"], "Should log name field")
 	assert.Equal(t, "alice@example.com", requestMap["email"], "Should log email field")
 	assert.Equal(t, float64(25), requestMap["age"], "Should log age field")
+}
+
+func TestTxnRecord_SetWebRequest_MultipartFormDataBodyPreservation(t *testing.T) {
+	t.Run("multipart form body accessible after logging", func(t *testing.T) {
+		app := logmanager.NewTestableApplication()
+		app.ResetLoggedEntries()
+
+		tx := app.Application.StartHttp("preservation-trace", "POST /upload")
+		txn := tx.TxnRecord
+
+		// Create multipart form request
+		body := &bytes.Buffer{}
+		writer := multipart.NewWriter(body)
+		_ = writer.WriteField("username", "testuser")
+		_ = writer.WriteField("description", "Test document")
+
+		part, _ := writer.CreateFormFile("file", "test.txt")
+		_, _ = part.Write([]byte("file content"))
+		writer.Close()
+
+		req := httptest.NewRequest("POST", "http://example.com/upload", body)
+		req.Header.Set("Content-Type", writer.FormDataContentType())
+
+		// Log the request (this parses the multipart form)
+		txn.SetWebRequest(req)
+		txn.End()
+
+		// Verify logging captured the data
+		assert.True(t, app.HasLoggedField("request"), "Request should be logged")
+
+		// Verify that subsequent consumers can still access the parsed form
+		assert.NotNil(t, req.MultipartForm, "MultipartForm should be populated after logging")
+		assert.NotNil(t, req.MultipartForm.Value, "Form values should be accessible")
+		assert.Equal(t, "testuser", req.MultipartForm.Value["username"][0], "Username should be accessible")
+		assert.Equal(t, "Test document", req.MultipartForm.Value["description"][0], "Description should be accessible")
+		assert.NotNil(t, req.MultipartForm.File, "Form files should be accessible")
+		assert.Len(t, req.MultipartForm.File["file"], 1, "File should be accessible")
+	})
+
+	t.Run("handler can process multipart form after logging", func(t *testing.T) {
+		app := logmanager.NewTestableApplication()
+		app.ResetLoggedEntries()
+
+		// Simulate a complete request flow
+		handlerCalled := false
+		var handlerErr error
+
+		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			handlerCalled = true
+
+			// Handler tries to access the form (simulating real-world usage)
+			// After logmanager has already parsed it
+			if r.MultipartForm == nil {
+				handlerErr = assert.AnError
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+
+			// Verify handler can access form data
+			username := r.MultipartForm.Value["username"]
+			if len(username) == 0 || username[0] != "john" {
+				handlerErr = assert.AnError
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+
+			files := r.MultipartForm.File["document"]
+			if len(files) == 0 || files[0].Filename != "resume.pdf" {
+				handlerErr = assert.AnError
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(`{"status": "ok"}`))
+		})
+
+		// Create test server
+		ts := httptest.NewServer(handler)
+		defer ts.Close()
+
+		// Create multipart request
+		body := &bytes.Buffer{}
+		writer := multipart.NewWriter(body)
+		_ = writer.WriteField("username", "john")
+
+		part, _ := writer.CreateFormFile("document", "resume.pdf")
+		_, _ = part.Write([]byte("PDF content"))
+		writer.Close()
+
+		req := httptest.NewRequest("POST", ts.URL, body)
+		req.Header.Set("Content-Type", writer.FormDataContentType())
+
+		// Start transaction and log request
+		tx := app.Application.StartHttp("handler-trace", "POST /upload")
+		txn := tx.TxnRecord
+		txn.SetWebRequest(req)
+
+		// Simulate handler processing
+		w := httptest.NewRecorder()
+		handler.ServeHTTP(w, req)
+
+		assert.True(t, handlerCalled, "Handler should be called")
+		assert.NoError(t, handlerErr, "Handler should not encounter errors")
+		assert.Equal(t, http.StatusOK, w.Code, "Handler should return 200")
+	})
+}
+
+func TestTxnRecord_SetWebRequest_FormUrlEncodedBodyPreservation(t *testing.T) {
+	t.Run("urlencoded form body can be re-read after logging", func(t *testing.T) {
+		app := logmanager.NewTestableApplication()
+		app.ResetLoggedEntries()
+
+		tx := app.Application.StartHttp("preservation-trace", "POST /login")
+		txn := tx.TxnRecord
+
+		// Create URL-encoded form request
+		formData := url.Values{}
+		formData.Set("username", "alice")
+		formData.Set("password", "secret")
+
+		req := httptest.NewRequest("POST", "http://example.com/login", strings.NewReader(formData.Encode()))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+		// Log the request (this parses the form)
+		txn.SetWebRequest(req)
+		txn.End()
+
+		// Verify logging captured the data
+		assert.True(t, app.HasLoggedField("request"), "Request should be logged")
+
+		// Verify that body can still be read
+		bodyBytes, err := io.ReadAll(req.Body)
+		assert.NoError(t, err, "Should be able to read body after logging")
+		assert.NotEmpty(t, bodyBytes, "Body should not be empty")
+
+		// Verify parsed form is accessible
+		assert.NotNil(t, req.Form, "Form should be populated")
+		assert.Equal(t, "alice", req.Form.Get("username"), "Username should be accessible")
+		assert.Equal(t, "secret", req.Form.Get("password"), "Password should be accessible")
+	})
+
+	t.Run("handler can parse form after logging", func(t *testing.T) {
+		app := logmanager.NewTestableApplication()
+		app.ResetLoggedEntries()
+
+		handlerCalled := false
+		var handlerErr error
+
+		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			handlerCalled = true
+
+			// Handler tries to parse form again (simulating real-world usage)
+			if err := r.ParseForm(); err != nil {
+				handlerErr = err
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+
+			// Verify handler can access form data
+			if r.Form.Get("username") != "bob" {
+				handlerErr = assert.AnError
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(`{"status": "ok"}`))
+		})
+
+		// Create test server
+		ts := httptest.NewServer(handler)
+		defer ts.Close()
+
+		// Create URL-encoded request
+		formData := url.Values{}
+		formData.Set("username", "bob")
+		formData.Set("password", "secret123")
+
+		req := httptest.NewRequest("POST", ts.URL, strings.NewReader(formData.Encode()))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+		// Start transaction and log request
+		tx := app.Application.StartHttp("handler-trace", "POST /login")
+		txn := tx.TxnRecord
+		txn.SetWebRequest(req)
+
+		// Simulate handler processing
+		w := httptest.NewRecorder()
+		handler.ServeHTTP(w, req)
+
+		assert.True(t, handlerCalled, "Handler should be called")
+		assert.NoError(t, handlerErr, "Handler should not encounter errors")
+		assert.Equal(t, http.StatusOK, w.Code, "Handler should return 200")
+	})
 }
