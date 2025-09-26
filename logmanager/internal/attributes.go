@@ -177,11 +177,29 @@ func headerAttributes(a *Attributes, h http.Header) {
 // If the request or its body is nil, no action is taken. The request body is converted to a suitable format and stored under
 // the "request.body" key in the Attributes map. This function ensures the request's body can be read multiple times by
 // resetting the body after reading it.
+// For multipart/form-data requests, it parses the form and extracts all fields including file information.
 func RequestBodyAttributes(a *Attributes, r *http.Request) {
 	if nil == r {
 		return
 	}
 
+	contentType := r.Header.Get("Content-Type")
+
+	// Handle multipart/form-data
+	if strings.Contains(contentType, "multipart/form-data") {
+		parseMultipartFormData(a, r)
+		headerAttributes(a, r.Header)
+		return
+	}
+
+	// Handle application/x-www-form-urlencoded
+	if strings.Contains(contentType, "application/x-www-form-urlencoded") {
+		parseFormData(a, r)
+		headerAttributes(a, r.Header)
+		return
+	}
+
+	// Handle JSON and other content types
 	if nil == r.Body {
 		return
 	}
@@ -194,6 +212,69 @@ func RequestBodyAttributes(a *Attributes, r *http.Request) {
 	}
 
 	headerAttributes(a, r.Header)
+}
+
+// parseMultipartFormData parses multipart/form-data and extracts form fields and file information.
+func parseMultipartFormData(a *Attributes, r *http.Request) {
+	if err := r.ParseMultipartForm(32 << 20); err != nil {
+		return
+	}
+
+	formData := make(map[string]interface{})
+
+	// Extract regular form fields
+	if r.MultipartForm != nil && r.MultipartForm.Value != nil {
+		for key, values := range r.MultipartForm.Value {
+			if len(values) == 1 {
+				formData[key] = values[0]
+			} else if len(values) > 1 {
+				formData[key] = values
+			}
+		}
+	}
+
+	// Extract file information
+	if r.MultipartForm != nil && r.MultipartForm.File != nil {
+		files := make([]map[string]interface{}, 0)
+		for fieldName, fileHeaders := range r.MultipartForm.File {
+			for _, fileHeader := range fileHeaders {
+				fileInfo := map[string]interface{}{
+					"field":    fieldName,
+					"filename": fileHeader.Filename,
+					"size":     fileHeader.Size,
+					"header":   fileHeader.Header,
+				}
+				files = append(files, fileInfo)
+			}
+		}
+		if len(files) > 0 {
+			formData["_files"] = files
+		}
+	}
+
+	if len(formData) > 0 {
+		a.value.Add(AttributeRequestBody, formData)
+	}
+}
+
+// parseFormData parses application/x-www-form-urlencoded form data.
+func parseFormData(a *Attributes, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		return
+	}
+
+	formData := make(map[string]interface{})
+	for key, values := range r.Form {
+		if len(values) == 1 {
+			formData[key] = values[0]
+		} else if len(values) > 1 {
+			formData[key] = values
+		}
+	}
+
+	if len(formData) > 0 {
+		a.value.Add(AttributeRequestBody, formData)
+	}
 }
 
 // RequestBodyAttribute adds a request body to the given attributes if the body is not nil.
