@@ -95,6 +95,9 @@ func TestRequestBodyAttributesMultipartFormData(t *testing.T) {
 		req, _ := http.NewRequest("POST", "http://example.com/upload", body)
 		req.Header.Set("Content-Type", writer.FormDataContentType())
 
+		// Parse the form first (simulating server-side handler behavior)
+		_ = req.ParseMultipartForm(32 << 20)
+
 		attrs := internal.NewAttributes()
 		internal.RequestBodyAttributes(attrs, req)
 
@@ -119,6 +122,9 @@ func TestRequestBodyAttributesMultipartFormData(t *testing.T) {
 
 		req, _ := http.NewRequest("POST", "http://example.com/upload", body)
 		req.Header.Set("Content-Type", writer.FormDataContentType())
+
+		// Parse the form first (simulating server-side handler behavior)
+		_ = req.ParseMultipartForm(32 << 20)
 
 		attrs := internal.NewAttributes()
 		internal.RequestBodyAttributes(attrs, req)
@@ -153,6 +159,9 @@ func TestRequestBodyAttributesMultipartFormData(t *testing.T) {
 		req, _ := http.NewRequest("POST", "http://example.com/upload", body)
 		req.Header.Set("Content-Type", writer.FormDataContentType())
 
+		// Parse the form first (simulating server-side handler behavior)
+		_ = req.ParseMultipartForm(32 << 20)
+
 		attrs := internal.NewAttributes()
 		internal.RequestBodyAttributes(attrs, req)
 
@@ -176,6 +185,9 @@ func TestRequestBodyAttributesMultipartFormData(t *testing.T) {
 		req, _ := http.NewRequest("POST", "http://example.com/upload", body)
 		req.Header.Set("Content-Type", writer.FormDataContentType())
 
+		// Parse the form first (simulating server-side handler behavior)
+		_ = req.ParseMultipartForm(32 << 20)
+
 		attrs := internal.NewAttributes()
 		internal.RequestBodyAttributes(attrs, req)
 
@@ -198,6 +210,9 @@ func TestRequestBodyAttributesMultipartFormData(t *testing.T) {
 
 		req, _ := http.NewRequest("POST", "http://example.com/upload", body)
 		req.Header.Set("Content-Type", writer.FormDataContentType())
+
+		// Parse the form first (simulating server-side handler behavior)
+		_ = req.ParseMultipartForm(32 << 20)
 
 		attrs := internal.NewAttributes()
 		internal.RequestBodyAttributes(attrs, req)

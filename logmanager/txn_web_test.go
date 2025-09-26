@@ -340,6 +340,9 @@ func TestTxnRecord_SetWebRequest_MultipartFormData(t *testing.T) {
 	req := httptest.NewRequest("POST", "http://example.com/upload", body)
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 
+	// Parse the form first (simulating server-side middleware behavior)
+	_ = req.ParseMultipartForm(32 << 20)
+
 	txn.SetWebRequest(req)
 	txn.SetResponseBodyAndCode([]byte(`{"status": "uploaded", "file_id": "abc123"}`), 201)
 	txn.End()
@@ -395,6 +398,9 @@ func TestTxnRecord_SetWebRequest_MultipartFormDataMultipleFiles(t *testing.T) {
 
 	req := httptest.NewRequest("POST", "http://example.com/upload-multiple", body)
 	req.Header.Set("Content-Type", writer.FormDataContentType())
+
+	// Parse the form first (simulating server-side middleware behavior)
+	_ = req.ParseMultipartForm(32 << 20)
 
 	txn.SetWebRequest(req)
 	txn.SetResponseBodyAndCode([]byte(`{"status": "success"}`), 200)
@@ -531,7 +537,10 @@ func TestTxnRecord_SetWebRequest_MultipartFormDataBodyPreservation(t *testing.T)
 		req := httptest.NewRequest("POST", "http://example.com/upload", body)
 		req.Header.Set("Content-Type", writer.FormDataContentType())
 
-		// Log the request (this parses the multipart form)
+		// Parse the form first (simulating server-side middleware behavior)
+		_ = req.ParseMultipartForm(32 << 20)
+
+		// Log the request (expects the form to be already parsed)
 		txn.SetWebRequest(req)
 		txn.End()
 
@@ -600,6 +609,9 @@ func TestTxnRecord_SetWebRequest_MultipartFormDataBodyPreservation(t *testing.T)
 
 		req := httptest.NewRequest("POST", ts.URL, body)
 		req.Header.Set("Content-Type", writer.FormDataContentType())
+
+		// Parse the form first (simulating server-side middleware behavior)
+		_ = req.ParseMultipartForm(32 << 20)
 
 		// Start transaction and log request
 		tx := app.Application.StartHttp("handler-trace", "POST /upload")
