@@ -259,9 +259,19 @@ func parseMultipartFormData(a *Attributes, r *http.Request) {
 
 // parseFormData parses application/x-www-form-urlencoded form data.
 func parseFormData(a *Attributes, r *http.Request) {
+	// Read body first and restore it after parsing
+	bodyBytes, err := io.ReadAll(r.Body)
+	if err != nil {
+		return
+	}
+	r.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+
 	if err := r.ParseForm(); err != nil {
 		return
 	}
+
+	// Restore body again after ParseForm consumed it
+	r.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
 
 	formData := make(map[string]interface{})
 	for key, values := range r.Form {
