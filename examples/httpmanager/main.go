@@ -47,6 +47,9 @@ func main() {
 	server.PUT("/user/{id}", user.NewUpdateUserHandler())
 	server.GET("/user/{id}/profile/{section}", user.NewGetUserProfileHandler())
 
+	// Query parameter binding route - demonstrating automatic query parameter binding
+	server.GET("/users/search", user.NewUserSearchHandler())
+
 	// static directory for serving images
 	staticDir := "static"
 	server.Handle("/images/", httpmanager.NewStaticHandler(staticDir))
@@ -63,6 +66,11 @@ func main() {
 	log.Println("GET http://localhost:8080/user/123/profile/settings")
 	log.Println("GET http://localhost:8080/user/456/profile/activity")
 	log.Println("GET http://localhost:8080/user/789/profile/preferences")
+	log.Println("")
+	log.Println("Automatic query parameter binding examples:")
+	log.Println("GET http://localhost:8080/users/search?name=john&min_age=18&max_age=65&active=true&tags=developer&tags=golang&include_email=true")
+	log.Println("GET http://localhost:8080/users/search?name=alice&min_age=25&active=false")
+	log.Println("GET http://localhost:8080/users/search?tags=frontend&tags=react&tags=typescript")
 	log.Println("")
 	log.Println("Simple error handling examples (CustomErrorV2):")
 	log.Println("POST http://localhost:8080/validation/create-user")

@@ -2,6 +2,19 @@
 
 `httpmanager` is a lightweight Go module for quickly setting up HTTP servers with configurable options and type-safe request handling. It simplifies creating HTTP endpoints with JSON request/response processing.
 
+## Key Features
+
+- **Type-safe request handling** with Go generics
+- **Automatic query parameter binding** with struct tags (similar to Gin's `ShouldBindQuery`)
+- **Path parameter support** with dynamic URL routing
+- **Built-in CORS middleware** with configurable settings
+- **File upload handling** with multipart form support
+- **Static file serving** with automatic content type detection
+- **HTTP redirects** with comprehensive redirect functionality
+- **SSL/TLS support** with certificate and key configuration
+- **Middleware support** at both server and handler levels
+- **Flexible error handling** with custom JSON error responses
+
 ## Installation
 
 To use this module in your Go project:
@@ -268,7 +281,174 @@ The `QueryParams` type provides methods for accessing query parameters:
 | `Get(key string) string`      | Returns the first value for the given parameter key |
 | `GetAll(key string) []string` | Returns all values for the given parameter key      |
 
+### Query Parameter Functions
+
+The module provides the following functions for working with query parameters:
+
+| Function                                            | Description                                          |
+|----------------------------------------------------|------------------------------------------------------|
+| `GetQueryParams(ctx context.Context) QueryParams` | Extracts all query parameters from the context       |
+| `BindQueryParams(ctx context.Context, dst interface{}) error` | Automatically binds query parameters to a struct using tags |
+
 Query parameters are automatically extracted from the request URL and added to the context, making them accessible in your handler functions.
+
+## Automatic Query Parameter Binding
+
+The module provides automatic query parameter binding similar to Gin's `ShouldBindQuery`, allowing you to bind query parameters directly to a struct using struct tags. This eliminates the need for manual parameter extraction and provides type-safe query parameter handling.
+
+### Basic Usage
+
+```go
+// Define a struct with query parameter tags
+type UserSearchQuery struct {
+    Name         string   `query:"name"`
+    MinAge       int      `query:"min_age"`
+    MaxAge       int      `query:"max_age"`
+    Active       bool     `query:"active"`
+    Tags         []string `query:"tags"`
+    IncludeEmail bool     `query:"include_email"`
+}
+
+type UserSearchRequest struct{}
+
+type UserSearchResponse struct {
+    Users []map[string]interface{} `json:"users"`
+    Total int                      `json:"total"`
+    Query UserSearchQuery          `json:"query"`
+}
+
+// Create a handler that uses automatic binding
+handlerFunc := func(ctx context.Context, req *UserSearchRequest) (*UserSearchResponse, error) {
+    // Automatically bind query parameters to struct
+    var queryParams UserSearchQuery
+    if err := httpmanager.BindQueryParams(ctx, &queryParams); err != nil {
+        return nil, err
+    }
+
+    // Use the bound parameters
+    users := []map[string]interface{}{}
+    for i := 1; i <= 3; i++ {
+        user := map[string]interface{}{
+            "id":     fmt.Sprintf("user_%d", i),
+            "name":   fmt.Sprintf("%s_%d", queryParams.Name, i),
+            "age":    queryParams.MinAge + i,
+            "active": queryParams.Active,
+            "tags":   queryParams.Tags,
+        }
+
+        if queryParams.IncludeEmail {
+            user["email"] = fmt.Sprintf("%s_%d@example.com", queryParams.Name, i)
+        }
+
+        users = append(users, user)
+    }
+
+    return &UserSearchResponse{
+        Users: users,
+        Total: len(users),
+        Query: queryParams, // Return the parsed query parameters
+    }, nil
+}
+
+// Register the handler
+searchHandler := httpmanager.NewHandler("GET", handlerFunc)
+server.GET("/users/search", searchHandler)
+```
+
+### Supported Data Types
+
+The automatic binding supports the following data types:
+
+| Go Type      | Description                                    | Example Query                    |
+|--------------|------------------------------------------------|----------------------------------|
+| `string`     | Single string value                            | `?name=john`                     |
+| `int`        | Integer value                                  | `?age=25`                        |
+| `int64`      | 64-bit integer value                           | `?count=1234567890`              |
+| `bool`       | Boolean value (true/false, 1/0, on/off)       | `?active=true`                   |
+| `[]string`   | Array of strings                               | `?tags=go&tags=web&tags=api`     |
+| `[]int`      | Array of integers                              | `?ids=1&ids=2&ids=3`             |
+| `[]int64`    | Array of 64-bit integers                       | `?values=123&values=456`         |
+| `[]bool`     | Array of booleans                              | `?flags=true&flags=false`        |
+
+### Example URL Queries
+
+Here are examples of URLs that work with the above struct:
+
+```
+GET /users/search?name=john&min_age=18&max_age=65&active=true&tags=developer&tags=golang&include_email=true
+GET /users/search?name=alice&min_age=25&active=false
+GET /users/search?tags=frontend&tags=react&tags=typescript
+GET /users/search?name=bob&active=true&include_email=false
+```
+
+### Error Handling
+
+The `BindQueryParams` function gracefully handles various scenarios:
+
+- **Invalid values**: Parameters that cannot be converted to the target type are skipped
+- **Missing parameters**: Fields remain at their zero values if no corresponding query parameter exists
+- **Invalid input**: Returns early if destination is not a pointer to a struct
+- **Empty context**: Returns early if no query parameters are present in the context
+
+```go
+// Example with error handling
+var queryParams UserSearchQuery
+if err := httpmanager.BindQueryParams(ctx, &queryParams); err != nil {
+    return nil, &httpmanager.ResponseError[ErrorResponse]{
+        Err:        err,
+        StatusCode: http.StatusBadRequest,
+        Body: ErrorResponse{
+            Code:    "QUERY_BIND_ERROR",
+            Message: "Failed to bind query parameters",
+            Data:    nil,
+        },
+    }
+}
+```
+
+### Migration from Manual Extraction
+
+**Before (Manual approach):**
+```go
+queryParams := httpmanager.GetQueryParams(ctx)
+name := queryParams.Get("name")
+ageStr := queryParams.Get("min_age")
+minAge := 0
+if ageStr != "" {
+    if val, err := strconv.Atoi(ageStr); err == nil {
+        minAge = val
+    }
+}
+activeStr := queryParams.Get("active")
+active := false
+if activeStr == "true" {
+    active = true
+}
+tags := queryParams.GetAll("tags")
+```
+
+**After (Automatic binding):**
+```go
+type QueryParams struct {
+    Name   string   `query:"name"`
+    MinAge int      `query:"min_age"`
+    Active bool     `query:"active"`
+    Tags   []string `query:"tags"`
+}
+
+var params QueryParams
+err := httpmanager.BindQueryParams(ctx, &params)
+```
+
+### Benefits
+
+- **Type Safety**: Automatic conversion to appropriate Go types
+- **Reduced Boilerplate**: No need for manual parameter extraction and conversion
+- **Better Maintainability**: Query parameters are clearly defined in struct tags
+- **Error Resilience**: Invalid values are handled gracefully without causing panics
+- **Familiar Syntax**: Similar to JSON binding and Gin's `ShouldBindQuery`
+
+The automatic query parameter binding feature makes it easier to work with complex query parameters while maintaining type safety and reducing repetitive code.
 
 ## Path Parameter Handling
 
