@@ -262,3 +262,226 @@ func TestGetHeaders(t *testing.T) {
 		assert.Equal(t, http.Header{}, headers)
 	})
 }
+
+func TestBindQueryParams(t *testing.T) {
+	t.Run("bind string fields", func(t *testing.T) {
+		type QueryRequest struct {
+			Name     string `query:"name"`
+			Category string `query:"category"`
+		}
+
+		params := QueryParams{
+			"name":     []string{"John"},
+			"category": []string{"tech"},
+		}
+		ctx := context.WithValue(context.Background(), queryParamsKey, params)
+
+		var req QueryRequest
+		err := BindQueryParams(ctx, &req)
+
+		assert.NoError(t, err)
+		assert.Equal(t, "John", req.Name)
+		assert.Equal(t, "tech", req.Category)
+	})
+
+	t.Run("bind integer fields", func(t *testing.T) {
+		type QueryRequest struct {
+			Age   int   `query:"age"`
+			Count int64 `query:"count"`
+		}
+
+		params := QueryParams{
+			"age":   []string{"30"},
+			"count": []string{"12345"},
+		}
+		ctx := context.WithValue(context.Background(), queryParamsKey, params)
+
+		var req QueryRequest
+		err := BindQueryParams(ctx, &req)
+
+		assert.NoError(t, err)
+		assert.Equal(t, 30, req.Age)
+		assert.Equal(t, int64(12345), req.Count)
+	})
+
+	t.Run("bind boolean fields", func(t *testing.T) {
+		type QueryRequest struct {
+			Active  bool `query:"active"`
+			Enabled bool `query:"enabled"`
+		}
+
+		params := QueryParams{
+			"active":  []string{"true"},
+			"enabled": []string{"false"},
+		}
+		ctx := context.WithValue(context.Background(), queryParamsKey, params)
+
+		var req QueryRequest
+		err := BindQueryParams(ctx, &req)
+
+		assert.NoError(t, err)
+		assert.Equal(t, true, req.Active)
+		assert.Equal(t, false, req.Enabled)
+	})
+
+	t.Run("bind slice fields", func(t *testing.T) {
+		type QueryRequest struct {
+			Tags  []string `query:"tags"`
+			IDs   []int    `query:"ids"`
+			Flags []bool   `query:"flags"`
+		}
+
+		params := QueryParams{
+			"tags":  []string{"tag1", "tag2", "tag3"},
+			"ids":   []string{"1", "2", "3"},
+			"flags": []string{"true", "false", "true"},
+		}
+		ctx := context.WithValue(context.Background(), queryParamsKey, params)
+
+		var req QueryRequest
+		err := BindQueryParams(ctx, &req)
+
+		assert.NoError(t, err)
+		assert.Equal(t, []string{"tag1", "tag2", "tag3"}, req.Tags)
+		assert.Equal(t, []int{1, 2, 3}, req.IDs)
+		assert.Equal(t, []bool{true, false, true}, req.Flags)
+	})
+
+	t.Run("bind mixed types", func(t *testing.T) {
+		type QueryRequest struct {
+			Name     string   `query:"name"`
+			Age      int      `query:"age"`
+			Active   bool     `query:"active"`
+			Tags     []string `query:"tags"`
+			NoTag    string   // Field without query tag
+			Private  string   `query:"private"` // Field with tag but not in params
+		}
+
+		params := QueryParams{
+			"name":   []string{"John"},
+			"age":    []string{"30"},
+			"active": []string{"true"},
+			"tags":   []string{"tag1", "tag2"},
+		}
+		ctx := context.WithValue(context.Background(), queryParamsKey, params)
+
+		var req QueryRequest
+		err := BindQueryParams(ctx, &req)
+
+		assert.NoError(t, err)
+		assert.Equal(t, "John", req.Name)
+		assert.Equal(t, 30, req.Age)
+		assert.Equal(t, true, req.Active)
+		assert.Equal(t, []string{"tag1", "tag2"}, req.Tags)
+		assert.Equal(t, "", req.NoTag)    // Field without tag should remain empty
+		assert.Equal(t, "", req.Private)  // Field with tag but no param should remain empty
+	})
+
+	t.Run("bind with invalid values", func(t *testing.T) {
+		type QueryRequest struct {
+			Age    int  `query:"age"`
+			Active bool `query:"active"`
+		}
+
+		params := QueryParams{
+			"age":    []string{"invalid"},
+			"active": []string{"not_bool"},
+		}
+		ctx := context.WithValue(context.Background(), queryParamsKey, params)
+
+		var req QueryRequest
+		err := BindQueryParams(ctx, &req)
+
+		assert.NoError(t, err) // Should not error, just skip invalid values
+		assert.Equal(t, 0, req.Age)      // Should remain zero value
+		assert.Equal(t, false, req.Active) // Should remain zero value
+	})
+
+	t.Run("bind int64 slice", func(t *testing.T) {
+		type QueryRequest struct {
+			Values []int64 `query:"values"`
+		}
+
+		params := QueryParams{
+			"values": []string{"1", "2", "3", "invalid", "4"},
+		}
+		ctx := context.WithValue(context.Background(), queryParamsKey, params)
+
+		var req QueryRequest
+		err := BindQueryParams(ctx, &req)
+
+		assert.NoError(t, err)
+		assert.Equal(t, []int64{1, 2, 3, 4}, req.Values) // Should skip invalid value
+	})
+
+	t.Run("with nil destination", func(t *testing.T) {
+		params := QueryParams{
+			"name": []string{"John"},
+		}
+		ctx := context.WithValue(context.Background(), queryParamsKey, params)
+
+		err := BindQueryParams(ctx, nil)
+		assert.NoError(t, err) // Should handle nil gracefully
+	})
+
+	t.Run("with non-pointer destination", func(t *testing.T) {
+		type QueryRequest struct {
+			Name string `query:"name"`
+		}
+
+		params := QueryParams{
+			"name": []string{"John"},
+		}
+		ctx := context.WithValue(context.Background(), queryParamsKey, params)
+
+		var req QueryRequest
+		err := BindQueryParams(ctx, req) // Not a pointer
+
+		assert.NoError(t, err) // Should handle gracefully
+		assert.Equal(t, "", req.Name) // Should remain empty since not a pointer
+	})
+
+	t.Run("with non-struct destination", func(t *testing.T) {
+		params := QueryParams{
+			"name": []string{"John"},
+		}
+		ctx := context.WithValue(context.Background(), queryParamsKey, params)
+
+		var name string
+		err := BindQueryParams(ctx, &name) // Pointer to string, not struct
+
+		assert.NoError(t, err) // Should handle gracefully
+		assert.Equal(t, "", name) // Should remain empty since not a struct
+	})
+
+	t.Run("with empty query params", func(t *testing.T) {
+		type QueryRequest struct {
+			Name string `query:"name"`
+		}
+
+		ctx := context.Background() // No query params in context
+
+		var req QueryRequest
+		err := BindQueryParams(ctx, &req)
+
+		assert.NoError(t, err) // Should handle gracefully
+		assert.Equal(t, "", req.Name) // Should remain empty
+	})
+
+	t.Run("with empty param values", func(t *testing.T) {
+		type QueryRequest struct {
+			Name string `query:"name"`
+		}
+
+		params := QueryParams{
+			"other": []string{"value"}, // Different param name
+		}
+		ctx := context.WithValue(context.Background(), queryParamsKey, params)
+
+		var req QueryRequest
+		err := BindQueryParams(ctx, &req)
+
+		assert.NoError(t, err) // Should handle gracefully
+		assert.Equal(t, "", req.Name) // Should remain empty
+	})
+}

@@ -24,9 +24,13 @@ The Client Manager module provides a robust HTTP client for making requests to e
 The HTTP Manager module is a lightweight solution for quickly setting up HTTP servers with configurable options and type-safe request handling. Key features include:
 
 - Type-safe request handling with automatic JSON serialization/deserialization
+- **Automatic query parameter binding** with struct tags (similar to Gin's `ShouldBindQuery`)
+- Path parameter support with dynamic URL routing
+- Built-in CORS middleware and comprehensive middleware support
+- File upload handling and static file serving
 - Configurable server options (timeouts, SSL, etc.)
 - Clean architecture support
-- Appropriate HTTP status codes for errors
+- Flexible error handling with custom JSON error responses
 
 [Learn more about HTTP Manager](./httpmanager/README.md)
 
