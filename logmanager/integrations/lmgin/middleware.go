@@ -32,7 +32,6 @@ func Middleware(app *logmanager.Application) gin.HandlerFunc {
 		c.Set(string(app.TraceIDContextKey()), traceID)
 
 		tx := app.StartHttp(traceID, routeName(c))
-		tx.SetWebRequest(c.Request)
 
 		c.Set(logmanager.TransactionContextKey.String(), tx)
 
@@ -41,6 +40,8 @@ func Middleware(app *logmanager.Application) gin.HandlerFunc {
 		c.Writer = rw
 
 		c.Next()
+
+		tx.SetWebRequest(c.Request)
 
 		tx.SetWebResponse(logmanager.WebResponse{
 			StatusCode: rw.StatusCode,

@@ -43,6 +43,33 @@ func main() {
 			"message": "ok",
 		})
 	})
+
+	r.POST("/event", func(c *gin.Context) {
+		title := c.PostForm("title")
+		description := c.PostForm("description")
+		location := c.PostForm("location")
+
+		file, err := c.FormFile("poster")
+		var fileInfo map[string]interface{}
+		if err == nil && file != nil {
+			fileInfo = map[string]interface{}{
+				"filename": file.Filename,
+				"size":     file.Size,
+			}
+		}
+
+		c.JSON(200, gin.H{
+			"status":  201,
+			"message": "event created successfully",
+			"event": gin.H{
+				"title":       title,
+				"description": description,
+				"location":    location,
+				"file":        fileInfo,
+			},
+		})
+	})
+
 	fmt.Println("Server is running at :8000")
 	panic(r.Run(":8000"))
 }

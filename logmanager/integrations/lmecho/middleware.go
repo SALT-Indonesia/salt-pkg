@@ -49,6 +49,8 @@ func writeResponse(next echo.HandlerFunc, c echo.Context, tx *logmanager.Transac
 	c.Response().Writer = cw
 	err := next(c)
 
+	tx.SetWebRequest(c.Request())
+
 	tx.SetWebResponse(logmanager.WebResponse{
 		StatusCode: c.Response().Status,
 		Body:       cw.Body.Bytes(),
@@ -71,8 +73,6 @@ func Middleware(app *logmanager.Application) echo.MiddlewareFunc {
 			traceId := traceID(c, app)
 			tx := app.StartHttp(traceId, routeName(c.Request()))
 			defer tx.End()
-
-			tx.SetWebRequest(c.Request())
 
 			// Use the actual trace ID from the transaction (maybe auto-generated)
 			actualTraceID := tx.TraceID()

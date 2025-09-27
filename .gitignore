@@ -12,6 +12,10 @@ coverage.*
 .idea
 .local/
 
+# Example binaries
+examples/httpmanager/httpmanager
+examples/logmanager/http_gin
+
 # macOS
 .DS_Store
 .DS_Store?

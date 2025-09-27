@@ -38,9 +38,11 @@ func Middleware(app *logmanager.Application) mux.MiddlewareFunc {
 			}
 
 			tx := app.StartHttp(traceID, routeName(r))
-			defer tx.End()
+			defer func() {
+				tx.SetWebRequest(r)
+				tx.End()
+			}()
 
-			tx.SetWebRequest(r)
 			w = tx.SetWebResponseHttp(w)
 			w.Header().Set(app.TraceIDHeaderKey(), traceID)
 			r = logmanager.RequestWithContext(r, app.TraceIDContextKey(), traceID)

@@ -2,6 +2,7 @@ package main
 
 import (
 	"examples/httpmanager/internal/application"
+	"examples/httpmanager/internal/delivery/event"
 	"examples/httpmanager/internal/delivery/home"
 	"examples/httpmanager/internal/delivery/product"
 	"examples/httpmanager/internal/delivery/profile"
@@ -41,6 +42,7 @@ func main() {
 	server.Handle("/upload", upload.NewHandler())
 	server.Handle("/product", product.NewHandler())
 	server.Handle("/validation/create-user", validation.NewHandler())
+	server.Handle("/v1/event", event.NewHandler())
 
 	// Path parameter routes - demonstrating Gin-like functionality
 	server.GET("/user/{id}", user.NewGetUserHandler())
@@ -84,6 +86,12 @@ func main() {
 	log.Println("  Validation error (400): {\"order_id\":\"\",\"customer_id\":\"CUST456\",\"amount\":100.50,\"payment_type\":\"credit_card\"}")
 	log.Println("  Business error (422): {\"order_id\":\"ORD123\",\"customer_id\":\"blocked_customer\",\"amount\":100.50,\"payment_type\":\"credit_card\"}")
 	log.Println("  System error (500): {\"order_id\":\"ORD_db_error\",\"customer_id\":\"CUST456\",\"amount\":100.50,\"payment_type\":\"credit_card\"}")
+	log.Println("")
+	log.Println("Multipart form-data example (reproduces issue #13):")
+	log.Println("POST http://localhost:8080/v1/event")
+	log.Println("  Content-Type: multipart/form-data")
+	log.Println("  Fields: title, description, location, start_date, end_date")
+	log.Println("  File: poster (optional)")
 
 	log.Panic(server.Start())
 }
