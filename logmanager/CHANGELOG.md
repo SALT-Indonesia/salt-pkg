@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [1.35.0] - 2025-09-27
 - **Add comprehensive unit tests for multipart/form-data logging across framework integrations (#13)**
   - Add 3 test cases for lmgorilla middleware: with file, without file, multiple files
   - Add 2 test cases for lmgin middleware: with file, without file

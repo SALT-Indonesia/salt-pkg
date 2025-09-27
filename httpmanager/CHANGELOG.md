@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.15.1] - 2025-09-27
 
 ### Fixed
 - **[Issue #13]** Fixed multipart/form-data request logging not capturing form fields and file metadata
