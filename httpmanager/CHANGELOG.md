@@ -1,5 +1,48 @@
 # Changelog
 
+## [0.15.0] - 2025-09-27
+
+### Added
+- **Automatic Query Parameter Binding**: Added `BindQueryParams` function for automatic binding of query parameters to struct fields using tags
+  - Similar to Gin's `ShouldBindQuery` functionality for familiar developer experience
+  - Support for multiple data types: `string`, `int`, `int64`, `bool`, and slice types (`[]string`, `[]int`, `[]int64`, `[]bool`)
+  - Reflection-based implementation with graceful error handling for invalid values
+  - Uses `query` struct tags to map URL parameters to struct fields (e.g., `query:"name"`)
+  - Comprehensive test coverage with 12 test cases covering all scenarios and edge cases
+  - Complete documentation with usage examples, migration guide, and before/after code comparisons
+
+### Enhanced
+- **Query Parameter Functions**: Added `BindQueryParams(ctx context.Context, dst interface{}) error` to function reference table
+- **Documentation**: Updated both root and module README files with comprehensive automatic binding documentation
+- **Examples**: Added `NewUserSearchHandler` in examples demonstrating real-world usage of automatic query parameter binding
+
+### Technical Details
+- Automatic type conversion with validation for supported Go types
+- Graceful handling of missing parameters (fields remain at zero values)
+- Invalid values are skipped without causing panics or errors
+- Maintains backward compatibility with existing manual `GetQueryParams()` approach
+- Zero-configuration setup - just add struct tags and call `BindQueryParams()`
+
+### Usage Example
+```go
+type UserSearchQuery struct {
+    Name         string   `query:"name"`
+    MinAge       int      `query:"min_age"`
+    Active       bool     `query:"active"`
+    Tags         []string `query:"tags"`
+}
+
+var params UserSearchQuery
+err := httpmanager.BindQueryParams(ctx, &params)
+```
+
+### Benefits
+- **Reduces Boilerplate**: Eliminates repetitive manual parameter extraction and type conversion code
+- **Type Safety**: Automatic conversion to appropriate Go types with validation
+- **Better Maintainability**: Query parameters clearly defined in struct tags
+- **Error Resilience**: Invalid values handled gracefully without breaking request processing
+- **Developer Experience**: Familiar syntax for developers coming from Gin framework
+
 ## [0.14.0] - 2025-09-27
 
 ### Added
