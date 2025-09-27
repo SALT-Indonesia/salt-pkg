@@ -74,8 +74,6 @@ func Middleware(app *logmanager.Application) echo.MiddlewareFunc {
 			tx := app.StartHttp(traceId, routeName(c.Request()))
 			defer tx.End()
 
-			tx.SetWebRequest(c.Request())
-
 			// Use the actual trace ID from the transaction (maybe auto-generated)
 			actualTraceID := tx.TraceID()
 			updateRequest(c, app, actualTraceID, tx)

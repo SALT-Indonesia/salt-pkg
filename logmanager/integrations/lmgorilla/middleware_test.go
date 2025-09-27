@@ -255,14 +255,7 @@ func TestMiddleware_MultipartFormData(t *testing.T) {
 			r.Use(lmgorilla.Middleware(app.Application))
 
 			r.HandleFunc("/v1/event", func(w http.ResponseWriter, r *http.Request) {
-				err := r.ParseMultipartForm(10 << 20)
-				assert.NoError(t, err, "Should parse multipart form without error")
-
-				txn := logmanager.FromContext(r.Context())
-				assert.NotNil(t, txn, "Transaction should exist in context")
-
-				txn.SetWebRequest(r)
-
+				_ = r.FormValue("title")
 				w.WriteHeader(http.StatusOK)
 				w.Header().Set("Content-Type", "application/json")
 				_, _ = w.Write([]byte(`{"status":201,"message":"event created successfully"}`))

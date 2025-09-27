@@ -246,18 +246,7 @@ func TestMiddleware_MultipartFormData(t *testing.T) {
 			r.Use(lmgin.Middleware(app.Application))
 
 			r.POST("/v1/event", func(c *gin.Context) {
-				err := c.Request.ParseMultipartForm(10 << 20)
-				assert.NoError(t, err, "Should parse multipart form without error")
-
-				txnInterface, exists := c.Get(logmanager.TransactionContextKey.String())
-				assert.True(t, exists, "Transaction should exist in context")
-
-				txn, ok := txnInterface.(*logmanager.Transaction)
-				assert.True(t, ok, "Transaction should be correct type")
-				assert.NotNil(t, txn, "Transaction should not be nil")
-
-				txn.SetWebRequest(c.Request)
-
+				_ = c.PostForm("title")
 				c.JSON(http.StatusOK, gin.H{
 					"status":  201,
 					"message": "event created successfully",

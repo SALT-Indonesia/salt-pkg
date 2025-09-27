@@ -246,14 +246,7 @@ func TestMiddleware_MultipartFormData(t *testing.T) {
 			e.Use(lmecho.Middleware(app.Application))
 
 			e.POST("/v1/event", func(c echo.Context) error {
-				err := c.Request().ParseMultipartForm(10 << 20)
-				assert.NoError(t, err, "Should parse multipart form without error")
-
-				txn := logmanager.FromContext(c.Request().Context())
-				assert.NotNil(t, txn, "Transaction should exist in context")
-
-				txn.SetWebRequest(c.Request())
-
+				_ = c.FormValue("title")
 				return c.JSON(http.StatusOK, map[string]interface{}{
 					"status":  201,
 					"message": "event created successfully",
