@@ -1,6 +1,7 @@
 package httpmanager
 
 import (
+	"context"
 	"github.com/SALT-Indonesia/salt-pkg/httpmanager/internal/testdata"
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
@@ -234,4 +235,105 @@ func TestServer_HealthCheck_WithOptions(t *testing.T) {
 	assert.Empty(t, rr.Body.String())
 	assert.Equal(t, ":8081", server.server.Addr)
 	assert.Equal(t, 5*time.Second, server.server.ReadTimeout)
+}
+
+func TestServer_HTTPMethodRoutes(t *testing.T) {
+	server := NewServer(testdata.NewApplication())
+
+	testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("method: " + r.Method))
+	})
+
+	// Test all HTTP method routes
+	server.GET("/test-get", testHandler)
+	server.POST("/test-post", testHandler)
+	server.PUT("/test-put", testHandler)
+	server.DELETE("/test-delete", testHandler)
+	server.PATCH("/test-patch", testHandler)
+
+	methods := []struct {
+		method string
+		path   string
+	}{
+		{"GET", "/test-get"},
+		{"POST", "/test-post"},
+		{"PUT", "/test-put"},
+		{"DELETE", "/test-delete"},
+		{"PATCH", "/test-patch"},
+	}
+
+	for _, m := range methods {
+		t.Run(m.method, func(t *testing.T) {
+			req := httptest.NewRequest(m.method, m.path, nil)
+			rr := httptest.NewRecorder()
+
+			server.router.ServeHTTP(rr, req)
+
+			assert.Equal(t, http.StatusOK, rr.Code)
+			assert.Equal(t, "method: "+m.method, rr.Body.String())
+		})
+	}
+}
+
+func TestServer_HandleFunc(t *testing.T) {
+	server := NewServer(testdata.NewApplication())
+
+	handlerFunc := func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("handler func called"))
+	}
+
+	server.HandleFunc("/test-func", handlerFunc)
+
+	req := httptest.NewRequest(http.MethodGet, "/test-func", nil)
+	rr := httptest.NewRecorder()
+
+	server.router.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+	assert.Equal(t, "handler func called", rr.Body.String())
+}
+
+func TestServer_Start_Errors(t *testing.T) {
+	t.Run("start without application", func(t *testing.T) {
+		server := &Server{
+			server:       &http.Server{},
+			router:       nil,
+			app:          nil,
+			hasSetUpCORS: true,
+			Option:       newDefaultOption(),
+		}
+
+		err := server.Start()
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "logmanager application is not set")
+	})
+
+	t.Run("start without CORS setup", func(t *testing.T) {
+		server := &Server{
+			server:       &http.Server{},
+			router:       nil,
+			app:          testdata.NewApplication(),
+			hasSetUpCORS: false,
+			Option:       newDefaultOption(),
+		}
+
+		err := server.Start()
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "CORS middleware is not set")
+	})
+}
+
+func TestServer_Stop(t *testing.T) {
+	server := NewServer(testdata.NewApplication())
+	server.EnableCORS(nil, nil, nil, false)
+
+	// Create a context with timeout for testing
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	// Stop should not return an error even if server wasn't started
+	err := server.Stop(ctx)
+	assert.NoError(t, err)
 }

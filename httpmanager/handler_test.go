@@ -282,3 +282,105 @@ func TestHandler_Middleware(t *testing.T) {
 		assert.Equal(t, "third,second,first", rr.Header().Get("X-Order"))
 	})
 }
+
+// Test types that implement error interface
+type CustomStringError string
+func (e CustomStringError) Error() string { return string(e) }
+
+type IncompleteError struct {
+	StatusCode int
+	SomeOtherField string
+}
+func (e *IncompleteError) Error() string { return "incomplete error" }
+
+type WrongFieldTypesError struct {
+	Err        string // Should be error type
+	StatusCode string // Should be int type
+	Body       interface{}
+}
+func (e *WrongFieldTypesError) Error() string { return e.Err }
+
+func TestCheckCustomErrorV2(t *testing.T) {
+	t.Run("valid ResponseError pointer", func(t *testing.T) {
+		type TestBody struct {
+			Code    string `json:"code"`
+			Message string `json:"message"`
+		}
+
+		err := &ResponseError[TestBody]{
+			Err:        errors.New("original error"),
+			StatusCode: 422,
+			Body:       TestBody{Code: "TEST001", Message: "test error"},
+		}
+
+		isCustom, statusCode, body := checkCustomErrorV2(err)
+
+		assert.True(t, isCustom)
+		assert.Equal(t, 422, statusCode)
+		assert.Equal(t, TestBody{Code: "TEST001", Message: "test error"}, body)
+	})
+
+	t.Run("valid ResponseError different type", func(t *testing.T) {
+		type TestBody struct {
+			Error string `json:"error"`
+		}
+
+		err := &ResponseError[TestBody]{
+			Err:        nil,
+			StatusCode: 400,
+			Body:       TestBody{Error: "validation failed"},
+		}
+
+		// Test with different body type
+		isCustom, statusCode, body := checkCustomErrorV2(err)
+
+		assert.True(t, isCustom)
+		assert.Equal(t, 400, statusCode)
+		assert.Equal(t, TestBody{Error: "validation failed"}, body)
+	})
+
+	t.Run("regular error", func(t *testing.T) {
+		err := errors.New("regular error")
+
+		isCustom, statusCode, body := checkCustomErrorV2(err)
+
+		assert.False(t, isCustom)
+		assert.Equal(t, 0, statusCode)
+		assert.Nil(t, body)
+	})
+
+	t.Run("non-struct error", func(t *testing.T) {
+		// Create a custom type that implements error but isn't a struct
+		err := CustomStringError("string error")
+
+		isCustom, statusCode, body := checkCustomErrorV2(err)
+
+		assert.False(t, isCustom)
+		assert.Equal(t, 0, statusCode)
+		assert.Nil(t, body)
+	})
+
+	t.Run("struct missing required fields", func(t *testing.T) {
+		err := &IncompleteError{StatusCode: 500, SomeOtherField: "test"}
+
+		isCustom, statusCode, body := checkCustomErrorV2(err)
+
+		assert.False(t, isCustom)
+		assert.Equal(t, 0, statusCode)
+		assert.Nil(t, body)
+	})
+
+	t.Run("struct with wrong field types", func(t *testing.T) {
+		err := &WrongFieldTypesError{
+			Err:        "error string",
+			StatusCode: "500",
+			Body:       "body",
+		}
+
+		isCustom, statusCode, body := checkCustomErrorV2(err)
+
+		assert.False(t, isCustom)
+		assert.Equal(t, 0, statusCode)
+		assert.Nil(t, body)
+	})
+}

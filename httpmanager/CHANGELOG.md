@@ -15,6 +15,14 @@
 ### Changed
 - **Dependencies**: Upgrade logmanager module to v1.35.0
 
+### Improved
+- **Test Coverage**: Enhanced test coverage from 84.7% to 93.9% with comprehensive test additions
+- Added tests for all HTTP method handlers (GET, POST, PUT, DELETE, PATCH, HandleFunc)
+- Added server lifecycle tests including Start/Stop error conditions and validation
+- Added ResponseError.Error() method tests for both with and without underlying errors
+- Added comprehensive checkCustomErrorV2 function tests covering various error types and edge cases
+- Enhanced validation of reflection-based error detection with improved edge case handling
+
 ## [0.13.0] - 2025-08-28
 
 ### Added
