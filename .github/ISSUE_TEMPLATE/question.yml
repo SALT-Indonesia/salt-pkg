@@ -1,0 +1,122 @@
+name: Question or Support
+description: Ask a question or request help
+title: "[Question]: "
+labels: ["question", "help wanted"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reaching out! Please fill out the form below to help us understand your question.
+
+  - type: dropdown
+    id: module
+    attributes:
+      label: Module
+      description: Which module is your question about?
+      options:
+        - clientmanager
+        - httpmanager
+        - logmanager
+        - eventmanager
+        - examples
+        - general/repository
+    validations:
+      required: true
+
+  - type: dropdown
+    id: question-type
+    attributes:
+      label: Question Type
+      description: What type of question is this?
+      options:
+        - How to use / Implementation help
+        - Best practices
+        - Configuration help
+        - Integration with other libraries
+        - Performance optimization
+        - Documentation clarification
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: question
+    attributes:
+      label: Your Question
+      description: Please describe your question in detail
+      placeholder: What would you like to know?
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Provide any relevant context about your project or use case
+      placeholder: |
+        - What are you trying to achieve?
+        - What have you tried so far?
+        - Any relevant project details
+    validations:
+      required: false
+
+  - type: textarea
+    id: code-example
+    attributes:
+      label: Code Example (if applicable)
+      description: Please provide any relevant code snippets
+      render: go
+      placeholder: |
+        // Your code here
+        package main
+
+        import "fmt"
+
+        func main() {
+            fmt.Println("Hello, World!")
+        }
+
+  - type: input
+    id: go-version
+    attributes:
+      label: Go Version
+      description: What version of Go are you using?
+      placeholder: e.g., go1.23.0
+    validations:
+      required: false
+
+  - type: input
+    id: os
+    attributes:
+      label: Operating System
+      description: What operating system are you using?
+      placeholder: e.g., macOS 14.0, Ubuntu 22.04, Windows 11
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional-info
+    attributes:
+      label: Additional Information
+      description: Any other information that might be helpful
+      placeholder: Any other details you think might be relevant
+
+  - type: checkboxes
+    id: research
+    attributes:
+      label: Research Done
+      description: Have you checked the following resources?
+      options:
+        - label: I have read the relevant documentation
+        - label: I have searched existing issues
+        - label: I have checked the examples directory
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Code of Conduct
+      description: By submitting this issue, you agree to follow our Code of Conduct
+      options:
+        - label: I agree to follow this project's Code of Conduct
+          required: true
