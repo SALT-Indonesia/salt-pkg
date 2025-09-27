@@ -1,10 +1,14 @@
 package lmgin_test
 
 import (
+	"bytes"
 	"github.com/SALT-Indonesia/salt-pkg/logmanager"
 	"github.com/SALT-Indonesia/salt-pkg/logmanager/integrations/lmgin"
+	"io"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -183,4 +187,172 @@ func middleware(contexts map[string]string) gin.HandlerFunc {
 
 		c.Next()
 	}
+}
+
+func TestMiddleware_MultipartFormData_Issue13(t *testing.T) {
+	tests := []struct {
+		name               string
+		hasFile            bool
+		formFields         map[string]string
+		expectedFields     map[string]interface{}
+		expectedFileField  string
+		expectedFileName   string
+		shouldLogRequest   bool
+		description        string
+	}{
+		{
+			name:    "multipart form data with file upload",
+			hasFile: true,
+			formFields: map[string]string{
+				"title":       "Tech Conference 2025",
+				"description": "Annual tech conference",
+				"location":    "Jakarta",
+			},
+			expectedFields: map[string]interface{}{
+				"title":       "Tech Conference 2025",
+				"description": "Annual tech conference",
+				"location":    "Jakarta",
+			},
+			expectedFileField: "poster",
+			expectedFileName:  "test-poster.txt",
+			shouldLogRequest:  true,
+			description:       "Should log form fields and file metadata for multipart/form-data with files",
+		},
+		{
+			name:    "multipart form data without file upload",
+			hasFile: false,
+			formFields: map[string]string{
+				"title":       "Workshop 2025",
+				"description": "Coding workshop",
+				"location":    "Bandung",
+			},
+			expectedFields: map[string]interface{}{
+				"title":       "Workshop 2025",
+				"description": "Coding workshop",
+				"location":    "Bandung",
+			},
+			shouldLogRequest: true,
+			description:      "Should log form fields for multipart/form-data without files",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gin.SetMode(gin.TestMode)
+			app := logmanager.NewTestableApplication()
+			app.ResetLoggedEntries()
+
+			r := gin.Default()
+			r.Use(lmgin.Middleware(app.Application))
+
+			r.POST("/v1/event", func(c *gin.Context) {
+				err := c.Request.ParseMultipartForm(10 << 20)
+				assert.NoError(t, err, "Should parse multipart form without error")
+
+				txnInterface, exists := c.Get(logmanager.TransactionContextKey.String())
+				assert.True(t, exists, "Transaction should exist in context")
+
+				txn, ok := txnInterface.(*logmanager.Transaction)
+				assert.True(t, ok, "Transaction should be correct type")
+				assert.NotNil(t, txn, "Transaction should not be nil")
+
+				txn.SetWebRequest(c.Request)
+
+				c.JSON(http.StatusOK, gin.H{
+					"status":  201,
+					"message": "event created successfully",
+				})
+			})
+
+			body, contentType := createMultipartFormRequest(t, tt.formFields, tt.hasFile, tt.expectedFileField, tt.expectedFileName)
+
+			req, err := http.NewRequest(http.MethodPost, "/v1/event", body)
+			assert.NoError(t, err, "Should create request without error")
+			req.Header.Set("Content-Type", contentType)
+
+			w := httptest.NewRecorder()
+			r.ServeHTTP(w, req)
+
+			assert.Equal(t, http.StatusOK, w.Code, "Should return 200 OK")
+
+			assert.Equal(t, 1, app.CountLoggedEntries(), "Should have exactly one logged entry")
+
+			assert.True(t, app.HasLoggedField("trace_id"), "Should log trace_id field")
+			assert.True(t, app.HasLoggedField("method"), "Should log method field")
+			assert.True(t, app.HasLoggedField("url"), "Should log url field")
+			assert.True(t, app.HasLoggedField("status"), "Should log status field")
+
+			if tt.shouldLogRequest {
+				assert.True(t, app.HasLoggedField("request"), "Should log request field for multipart/form-data")
+
+				requestData := app.GetLoggedField("request")
+				assert.NotNil(t, requestData, "Request data should not be nil")
+
+				requestMap, ok := requestData.(map[string]interface{})
+				assert.True(t, ok, "Request data should be a map")
+
+				for fieldName, expectedValue := range tt.expectedFields {
+					actualValue, exists := requestMap[fieldName]
+					assert.True(t, exists, "Request should contain field: %s", fieldName)
+					assert.Equal(t, expectedValue, actualValue, "Field %s should have correct value", fieldName)
+				}
+
+				if tt.hasFile {
+					filesData, exists := requestMap["_files"]
+					assert.True(t, exists, "Request should contain _files field when file is uploaded")
+					assert.NotNil(t, filesData, "Files data should not be nil")
+
+					var filesArray []interface{}
+					switch v := filesData.(type) {
+					case []interface{}:
+						filesArray = v
+					case []map[string]interface{}:
+						filesArray = make([]interface{}, len(v))
+						for i, file := range v {
+							filesArray[i] = file
+						}
+					default:
+						t.Fatalf("Unexpected type for _files: %T", filesData)
+					}
+
+					assert.Greater(t, len(filesArray), 0, "Files array should not be empty")
+
+					firstFile, ok := filesArray[0].(map[string]interface{})
+					assert.True(t, ok, "First file should be a map")
+					assert.Equal(t, tt.expectedFileField, firstFile["field"], "File field name should match")
+					assert.Equal(t, tt.expectedFileName, firstFile["filename"], "File name should match")
+					assert.NotNil(t, firstFile["size"], "File size should be logged")
+					assert.NotNil(t, firstFile["header"], "File header should be logged")
+				}
+			}
+
+			assert.Equal(t, "POST", app.GetLoggedField("method"), "Should log POST method")
+			assert.Equal(t, "/v1/event", app.GetLoggedField("url"), "Should log correct URL")
+			assert.Equal(t, 200, app.GetLoggedField("status"), "Should log 200 status")
+		})
+	}
+}
+
+func createMultipartFormRequest(t *testing.T, formFields map[string]string, hasFile bool, fileFieldName, fileName string) (io.Reader, string) {
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+
+	for key, val := range formFields {
+		err := writer.WriteField(key, val)
+		assert.NoError(t, err, "Should write form field without error")
+	}
+
+	if hasFile {
+		fileContent := "Test file content for " + fileName
+		part, err := writer.CreateFormFile(fileFieldName, fileName)
+		assert.NoError(t, err, "Should create form file without error")
+
+		_, err = io.Copy(part, strings.NewReader(fileContent))
+		assert.NoError(t, err, "Should write file content without error")
+	}
+
+	err := writer.Close()
+	assert.NoError(t, err, "Should close writer without error")
+
+	return body, writer.FormDataContentType()
 }
