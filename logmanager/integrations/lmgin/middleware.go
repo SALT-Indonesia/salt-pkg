@@ -42,6 +42,8 @@ func Middleware(app *logmanager.Application) gin.HandlerFunc {
 
 		c.Next()
 
+		tx.SetWebRequest(c.Request)
+
 		tx.SetWebResponse(logmanager.WebResponse{
 			StatusCode: rw.StatusCode,
 			Body:       rw.Body.Bytes(),
