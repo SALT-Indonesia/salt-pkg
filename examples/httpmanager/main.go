@@ -17,6 +17,7 @@ import (
 
 func main() {
 	// Create a server with CORS middleware enabled
+	// Health check is enabled by default at GET /health
 	server := httpmanager.NewServer(logmanager.NewApplication())
 	server.EnableCORS(
 		[]string{"http://localhost:3000", "https://example.com"}, // allowed origins
@@ -24,6 +25,11 @@ func main() {
 		[]string{"*"}, // allowed all headers
 		true,          // allow credentials
 	)
+
+	// Health check examples:
+	// Default: Health check is enabled at GET /health
+	// To customize path: httpmanager.NewServer(app, httpmanager.WithHealthCheckPath("/api/health"))
+	// To disable: httpmanager.NewServer(app, httpmanager.WithoutHealthCheck())
 
 	// Alternatively, you can enable CORS after server creation:
 	// server := httpmanager.NewServer()
@@ -45,6 +51,8 @@ func main() {
 	staticDir := "static"
 	server.Handle("/images/", httpmanager.NewStaticHandler(staticDir))
 
+	log.Println("Health check endpoint: GET http://localhost:8080/health")
+	log.Println("")
 	log.Println("Try accessing: http://localhost:8080/images/avatar.jpg")
 	log.Println("Or a file in a subdirectory: http://localhost:8080/images/others/orange.jpg")
 	log.Println("")

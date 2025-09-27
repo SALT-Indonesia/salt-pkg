@@ -19,6 +19,8 @@ func TestNewDefaultOption(t *testing.T) {
 	assert.Empty(t, opt.keyFile, "Default keyFile should be empty")
 	assert.Empty(t, opt.certData, "Default certData should be empty")
 	assert.Empty(t, opt.keyData, "Default keyData should be empty")
+	assert.Equal(t, "/health", opt.healthCheckPath, "Default health check path should be /health")
+	assert.True(t, opt.healthCheckEnabled, "Default health check should be enabled")
 }
 
 func TestWithAddr(t *testing.T) {
@@ -325,4 +327,66 @@ func TestOptionFuncChaining(t *testing.T) {
 	assert.Equal(t, "/path/to/key.pem", opt.keyFile, "Key file path should be set correctly")
 	assert.Equal(t, "-----BEGIN CERTIFICATE-----\nMIICertificateContent\n-----END CERTIFICATE-----", opt.certData, "Certificate data should be set correctly")
 	assert.Equal(t, "-----BEGIN PRIVATE KEY-----\nMIIPrivateKeyContent\n-----END PRIVATE KEY-----", opt.keyData, "Key data should be set correctly")
+}
+
+func TestWithHealthCheck(t *testing.T) {
+	opt := &Option{}
+	optFunc := WithHealthCheck()
+	optFunc(opt)
+
+	assert.True(t, opt.healthCheckEnabled, "Health check should be enabled")
+	assert.Empty(t, opt.healthCheckPath, "Health check path should not be modified")
+}
+
+func TestWithHealthCheckPath(t *testing.T) {
+	tests := []struct {
+		name         string
+		path         string
+		expectedPath string
+	}{
+		{
+			name:         "custom health check path",
+			path:         "/api/health",
+			expectedPath: "/api/health",
+		},
+		{
+			name:         "empty path",
+			path:         "",
+			expectedPath: "",
+		},
+		{
+			name:         "path with parameters",
+			path:         "/v1/status",
+			expectedPath: "/v1/status",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			opt := &Option{}
+			optFunc := WithHealthCheckPath(tt.path)
+			optFunc(opt)
+
+			assert.Equal(t, tt.expectedPath, opt.healthCheckPath, "Health check path should be set correctly")
+			assert.True(t, opt.healthCheckEnabled, "Health check should be enabled when path is set")
+		})
+	}
+}
+
+func TestWithoutHealthCheck(t *testing.T) {
+	opt := &Option{healthCheckEnabled: true}
+	optFunc := WithoutHealthCheck()
+	optFunc(opt)
+
+	assert.False(t, opt.healthCheckEnabled, "Health check should be disabled")
+}
+
+func TestHealthCheckOptionFuncChaining(t *testing.T) {
+	opt := &Option{}
+
+	WithHealthCheck()(opt)
+	WithHealthCheckPath("/api/v1/health")(opt)
+
+	assert.True(t, opt.healthCheckEnabled, "Health check should be enabled")
+	assert.Equal(t, "/api/v1/health", opt.healthCheckPath, "Health check path should be set correctly")
 }

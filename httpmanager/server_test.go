@@ -164,3 +164,74 @@ func TestServer_Middleware(t *testing.T) {
 		assert.Equal(t, "handler2", rr.Header().Get("X-Handler-2"))
 	})
 }
+
+func TestServer_HealthCheck_DefaultPath(t *testing.T) {
+	server := NewServer(testdata.NewApplication())
+
+	req := httptest.NewRequest(http.MethodGet, "/health", nil)
+	rr := httptest.NewRecorder()
+
+	server.router.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+	assert.Empty(t, rr.Body.String())
+}
+
+func TestServer_HealthCheck_CustomPath(t *testing.T) {
+	customPath := "/custom-health"
+	server := NewServer(testdata.NewApplication(), WithHealthCheckPath(customPath))
+
+	req := httptest.NewRequest(http.MethodGet, customPath, nil)
+	rr := httptest.NewRecorder()
+
+	server.router.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+	assert.Empty(t, rr.Body.String())
+}
+
+func TestServer_HealthCheck_Disabled(t *testing.T) {
+	server := NewServer(testdata.NewApplication(), WithoutHealthCheck())
+
+	req := httptest.NewRequest(http.MethodGet, "/health", nil)
+	rr := httptest.NewRecorder()
+
+	server.router.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusNotFound, rr.Code)
+}
+
+func TestServer_HealthCheck_OnlyGET(t *testing.T) {
+	server := NewServer(testdata.NewApplication())
+
+	methods := []string{http.MethodPost, http.MethodPut, http.MethodDelete, http.MethodPatch}
+
+	for _, method := range methods {
+		t.Run(method, func(t *testing.T) {
+			req := httptest.NewRequest(method, "/health", nil)
+			rr := httptest.NewRecorder()
+
+			server.router.ServeHTTP(rr, req)
+
+			assert.Equal(t, http.StatusMethodNotAllowed, rr.Code)
+		})
+	}
+}
+
+func TestServer_HealthCheck_WithOptions(t *testing.T) {
+	server := NewServer(testdata.NewApplication(),
+		WithHealthCheckPath("/api/health"),
+		WithAddr(":8081"),
+		WithReadTimeout(5*time.Second),
+	)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/health", nil)
+	rr := httptest.NewRecorder()
+
+	server.router.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+	assert.Empty(t, rr.Body.String())
+	assert.Equal(t, ":8081", server.server.Addr)
+	assert.Equal(t, 5*time.Second, server.server.ReadTimeout)
+}
