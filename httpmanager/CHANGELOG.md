@@ -1,23 +1,5 @@
 # Changelog
 
-## [0.15.1] - 2025-09-27
-
-### Fixed
-- **[Issue #13]** Fixed multipart/form-data request logging not capturing form fields and file metadata
-  - Added `SetWebRequest()` call after `ParseMultipartForm()` in `upload.go` to properly log parsed form data
-  - Request logs now include all form fields and file metadata (`_files` array with field, filename, size, headers)
-  - Affects: `UploadHandler.ServeHTTP()`
-
-### Added
-- Example implementation in `examples/httpmanager/internal/delivery/event/handler.go`
-  - Demonstrates proper multipart/form-data handling with `/v1/event` endpoint
-  - Shows form field extraction and file upload processing
-
-### Changed
-- Enhanced request logging for multipart/form-data requests to include:
-  - All form field values in the `request` log field
-  - File metadata in `_files` array (field name, filename, size, headers)
-
 ## [0.15.0] - 2025-09-27
 
 ### Added

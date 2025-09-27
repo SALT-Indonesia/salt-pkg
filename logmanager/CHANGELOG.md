@@ -1,13 +1,17 @@
 # Changelog
 
 ## [1.35.0] - 2025-09-27
+- **Fix multipart/form-data request logging not capturing form fields and file metadata (#13)**
+  - Update middleware in lmgin, lmecho, and lmgorilla to call `SetWebRequest()` after handler execution
+  - Middleware now automatically captures parsed multipart form data without manual intervention
+  - Request logs now include all form fields and file metadata (`_files` array with field, filename, size, headers)
+  - Fixes issue where middleware logged request before form was parsed by handler
 - **Add comprehensive unit tests for multipart/form-data logging across framework integrations (#13)**
   - Add 3 test cases for lmgorilla middleware: with file, without file, multiple files
   - Add 2 test cases for lmgin middleware: with file, without file
   - Add 2 test cases for lmecho middleware: with file, without file
   - Add helper function `createMultipartFormRequest()` for generating test multipart requests
   - Validate form fields and file metadata (`_files` array) are properly logged
-  - Test coverage ensures `SetWebRequest()` is called after `ParseMultipartForm()` to capture parsed data
   - Validate proper type assertion for `_files` array (handles both `[]interface{}` and `[]map[string]interface{}`)
   - All 36 tests passing across all framework integrations
 - **Fix multipart/form-data and application/x-www-form-urlencoded request logging (#11)**
