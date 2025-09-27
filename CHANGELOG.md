@@ -17,11 +17,3 @@ For detailed changes in each module, see:
 | **logmanager** | [CHANGELOG](./logmanager/CHANGELOG.md) | Structured logging with trace ID tracking and framework integrations |
 | **clientmanager** | [CHANGELOG](./clientmanager/CHANGELOG.md) | HTTP client library with authentication support |
 | **eventmanager** | [CHANGELOG](./eventmanager/CHANGELOG.md) | Event publishing/subscribing system |
-
-### Changelog Format
-
-Each entry follows this format:
-```
-- **[module]**: Brief description (#PR)
-  - Sub-item with additional context
-```
