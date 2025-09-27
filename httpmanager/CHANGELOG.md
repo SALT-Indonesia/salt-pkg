@@ -12,6 +12,9 @@
   - Comprehensive test coverage for all configuration scenarios
   - Updated examples to demonstrate health check usage patterns
 
+### Changed
+- **Dependencies**: Upgrade logmanager module to v1.35.0
+
 ## [0.13.0] - 2025-08-28
 
 ### Added
