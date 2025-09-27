@@ -3,6 +3,7 @@ package httpmanager
 import (
 	"errors"
 	"testing"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestCustomError_Error(t *testing.T) {
@@ -93,4 +94,27 @@ func TestCustomError_Fields(t *testing.T) {
 	if customErr.StatusCode != statusCode {
 		t.Errorf("Expected StatusCode to be %d, got %d", statusCode, customErr.StatusCode)
 	}
+}
+
+func TestResponseError_Error(t *testing.T) {
+	t.Run("with underlying error", func(t *testing.T) {
+		originalErr := errors.New("original error message")
+		responseErr := &ResponseError[map[string]string]{
+			Err:        originalErr,
+			StatusCode: 400,
+			Body:       map[string]string{"code": "TEST001", "message": "test error"},
+		}
+
+		assert.Equal(t, "original error message", responseErr.Error())
+	})
+
+	t.Run("without underlying error", func(t *testing.T) {
+		responseErr := &ResponseError[map[string]string]{
+			Err:        nil,
+			StatusCode: 422,
+			Body:       map[string]string{"code": "TEST002", "message": "business error"},
+		}
+
+		assert.Equal(t, "response error with custom body", responseErr.Error())
+	})
 }

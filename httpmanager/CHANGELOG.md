@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.14.0] - 2025-09-27
+
+### Added
+- **Health Check Endpoint**: Added configurable health check endpoint functionality
+  - Health check is enabled by default at `GET /health` endpoint
+  - Returns HTTP 200 status with empty response body
+  - Configurable endpoint path via `WithHealthCheckPath(path string)` option function
+  - Can be disabled via `WithoutHealthCheck()` option function
+  - Only accepts GET requests, returns 405 Method Not Allowed for other HTTP methods
+  - Comprehensive test coverage for all configuration scenarios
+  - Updated examples to demonstrate health check usage patterns
+
+### Changed
+- **Dependencies**: Upgrade logmanager module to v1.35.0
+
+### Improved
+- **Test Coverage**: Enhanced test coverage from 84.7% to 93.9% with comprehensive test additions
+- Added tests for all HTTP method handlers (GET, POST, PUT, DELETE, PATCH, HandleFunc)
+- Added server lifecycle tests including Start/Stop error conditions and validation
+- Added ResponseError.Error() method tests for both with and without underlying errors
+- Added comprehensive checkCustomErrorV2 function tests covering various error types and edge cases
+- Enhanced validation of reflection-based error detection with improved edge case handling
+
 ## [0.13.0] - 2025-08-28
 
 ### Added

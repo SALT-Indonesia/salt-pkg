@@ -7,15 +7,17 @@ import (
 )
 
 type Option struct {
-	addr         string
-	readTimeout  time.Duration
-	writeTimeout time.Duration
-	ssl          bool
-	certFile     string
-	keyFile      string
-	certData     string
-	keyData      string
-	middlewares  []mux.MiddlewareFunc
+	addr             string
+	readTimeout      time.Duration
+	writeTimeout     time.Duration
+	ssl              bool
+	certFile         string
+	keyFile          string
+	certData         string
+	keyData          string
+	middlewares      []mux.MiddlewareFunc
+	healthCheckPath  string
+	healthCheckEnabled bool
 }
 
 // newDefaultOption initializes an Option struct with default server configurations and returns a pointer to it.
@@ -25,10 +27,12 @@ func newDefaultOption() *Option {
 		port = "8080"
 	}
 	return &Option{
-		addr:         ":" + port,
-		readTimeout:  10 * time.Second,
-		writeTimeout: 10 * time.Second,
-		middlewares:  []mux.MiddlewareFunc{},
+		addr:               ":" + port,
+		readTimeout:        10 * time.Second,
+		writeTimeout:       10 * time.Second,
+		middlewares:        []mux.MiddlewareFunc{},
+		healthCheckPath:    "/health",
+		healthCheckEnabled: true,
 	}
 }
 
@@ -101,5 +105,27 @@ func WithPort(port string) OptionFunc {
 func WithMiddleware(middleware ...mux.MiddlewareFunc) OptionFunc {
 	return func(o *Option) {
 		o.middlewares = append(o.middlewares, middleware...)
+	}
+}
+
+// WithHealthCheck enables the health check endpoint with the default path "/health"
+func WithHealthCheck() OptionFunc {
+	return func(o *Option) {
+		o.healthCheckEnabled = true
+	}
+}
+
+// WithHealthCheckPath sets a custom path for the health check endpoint and enables it
+func WithHealthCheckPath(path string) OptionFunc {
+	return func(o *Option) {
+		o.healthCheckPath = path
+		o.healthCheckEnabled = true
+	}
+}
+
+// WithoutHealthCheck disables the health check endpoint
+func WithoutHealthCheck() OptionFunc {
+	return func(o *Option) {
+		o.healthCheckEnabled = false
 	}
 }

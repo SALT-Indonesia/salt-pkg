@@ -34,6 +34,11 @@ func NewServer(app *logmanager.Application, opts ...OptionFunc) *Server {
 	// Add default middlewares
 	s.middlewares = append(s.middlewares, lmgorilla.Middleware(s.app))
 
+	// Register health check endpoint if enabled
+	if s.healthCheckEnabled {
+		s.registerHealthCheck()
+	}
+
 	s.server = &http.Server{
 		Handler:      router,
 		Addr:         s.addr,
@@ -153,4 +158,13 @@ func (s *Server) Start() error {
 // Stop gracefully shuts down the server without interrupting any active connections.
 func (s *Server) Stop(ctx context.Context) error {
 	return s.server.Shutdown(ctx)
+}
+
+// registerHealthCheck registers the health check endpoint on the server
+func (s *Server) registerHealthCheck() {
+	healthHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	s.router.Handle(s.healthCheckPath, healthHandler).Methods("GET")
 }
