@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/SALT-Indonesia/salt-pkg/logmanager"
 	"github.com/gorilla/mux"
 	"io"
 	"mime/multipart"
@@ -105,11 +104,6 @@ func (h *UploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	formValues := make(map[string][]string)
 	for key, values := range r.MultipartForm.Value {
 		formValues[key] = values
-	}
-
-	// Update transaction with parsed multipart form data for logging
-	if txn := logmanager.FromContext(ctx); txn != nil {
-		txn.SetWebRequest(r)
 	}
 
 	// Call the handler function
