@@ -183,7 +183,7 @@ func middleware(contexts map[logmanager.ContextKey]string) mux.MiddlewareFunc {
 	}
 }
 
-func TestMiddleware_MultipartFormData_Issue13(t *testing.T) {
+func TestMiddleware_MultipartFormData(t *testing.T) {
 	tests := []struct {
 		name               string
 		hasFile            bool

@@ -190,7 +190,7 @@ func middleware(contexts map[string]string) echo.MiddlewareFunc {
 	}
 }
 
-func TestMiddleware_MultipartFormData_Issue13(t *testing.T) {
+func TestMiddleware_MultipartFormData(t *testing.T) {
 	tests := []struct {
 		name               string
 		hasFile            bool
