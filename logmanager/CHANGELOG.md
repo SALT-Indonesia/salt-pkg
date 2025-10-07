@@ -1,6 +1,19 @@
 # Changelog
 
 ## [Unreleased]
+- **Implement missing gRPC client and stream interceptors (#19)**
+  - Add `UnaryClientInterceptor` for client-side unary RPC logging with automatic trace ID propagation
+  - Add `StreamClientInterceptor` for client-side streaming RPC logging with message-level tracking
+  - Add `StreamServerInterceptor` for server-side streaming RPC logging
+  - Implement automatic trace ID extraction from context and injection into gRPC metadata
+  - Add stream wrapper types (`wrappedClientStream`, `wrappedServerStream`) for proper lifecycle management
+  - Add request/response logging for both client and server interceptors
+  - Implement error handling with gRPC status code conversion to HTTP status
+  - Add client example demonstrating all interceptor types
+  - Update gRPC example with StreamServerInterceptor usage
+  - Enhance documentation with trace ID propagation examples and best practices
+  - All tests passing with no regressions
+
 - **Fix multipart/form-data and application/x-www-form-urlencoded request logging (#11)**
   - Add support for logging multipart form data with form fields and file metadata
   - Add support for logging URL-encoded form data
