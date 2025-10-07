@@ -4,11 +4,6 @@ title: "[Feature]: "
 labels: ["enhancement", "triage"]
 assignees: []
 body:
-  - type: markdown
-    attributes:
-      value: |
-        Thanks for suggesting a new feature! Please fill out the form below.
-
   - type: dropdown
     id: module
     attributes:
@@ -26,79 +21,24 @@ body:
       required: true
 
   - type: textarea
-    id: problem
+    id: description
     attributes:
-      label: Is your feature request related to a problem?
-      description: A clear and concise description of what the problem is
-      placeholder: I'm always frustrated when...
-    validations:
-      required: false
-
-  - type: textarea
-    id: solution
-    attributes:
-      label: Describe the solution you'd like
-      description: A clear and concise description of what you want to happen
-      placeholder: I would like to see...
-    validations:
-      required: true
-
-  - type: textarea
-    id: alternatives
-    attributes:
-      label: Describe alternatives you've considered
-      description: A clear and concise description of any alternative solutions or features you've considered
-      placeholder: I've considered...
-    validations:
-      required: false
-
-  - type: textarea
-    id: use-case
-    attributes:
-      label: Use Case
-      description: Describe your use case for this feature
+      label: Feature Description
+      description: Describe the feature you'd like, the problem it solves, and how you'd use it
       placeholder: |
-        Example:
-        - As a developer, I want to...
-        - So that I can...
+        **Problem:**
+        Describe the problem or need...
+
+        **Proposed solution:**
+        Describe the feature you'd like...
+
+        **Use case:**
+        How would you use this feature?
+
+        **Alternatives considered:**
+        Other approaches you've thought about...
+
+        **Additional context:**
+        Any other information...
     validations:
       required: true
-
-  - type: dropdown
-    id: priority
-    attributes:
-      label: Priority
-      description: How important is this feature to you?
-      options:
-        - Low - Nice to have
-        - Medium - Would be helpful
-        - High - Important for my project
-        - Critical - Blocking my project
-    validations:
-      required: true
-
-  - type: checkboxes
-    id: contribution
-    attributes:
-      label: Contribution
-      description: Are you willing to contribute to this feature?
-      options:
-        - label: I would be willing to implement this feature
-        - label: I would be willing to help test this feature
-        - label: I would be willing to write documentation for this feature
-
-  - type: textarea
-    id: additional-context
-    attributes:
-      label: Additional Context
-      description: Add any other context, screenshots, or examples about the feature request here
-      placeholder: Any additional information that might be helpful
-
-  - type: checkboxes
-    id: terms
-    attributes:
-      label: Code of Conduct
-      description: By submitting this issue, you agree to follow our Code of Conduct
-      options:
-        - label: I agree to follow this project's Code of Conduct
-          required: true
