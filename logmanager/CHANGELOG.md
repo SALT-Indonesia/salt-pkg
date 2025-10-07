@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [1.36.0] - 2025-10-07
 - **Implement missing gRPC client and stream interceptors (#19)**
   - Add `UnaryClientInterceptor` for client-side unary RPC logging with automatic trace ID propagation
   - Add `StreamClientInterceptor` for client-side streaming RPC logging with message-level tracking
@@ -14,6 +16,7 @@
   - Enhance documentation with trace ID propagation examples and best practices
   - All tests passing with no regressions
 
+## [1.35.0] - 2025-09-27
 - **Fix multipart/form-data and application/x-www-form-urlencoded request logging (#11)**
   - Add support for logging multipart form data with form fields and file metadata
   - Add support for logging URL-encoded form data
