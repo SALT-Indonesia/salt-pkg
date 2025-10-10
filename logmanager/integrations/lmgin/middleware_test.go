@@ -175,6 +175,48 @@ func TestMiddleware(t *testing.T) {
 	}
 }
 
+// TestMiddleware_TransactionInRequestContext tests that the transaction is accessible from c.Request.Context()
+func TestMiddleware_TransactionInRequestContext(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.Default()
+
+	app := logmanager.NewTestableApplication()
+	app.ResetLoggedEntries()
+
+	// Apply the middleware
+	r.Use(lmgin.Middleware(app.Application))
+
+	// Create a test route that simulates a service layer call
+	r.GET("/test", func(c *gin.Context) {
+		// This simulates calling a service/repository layer that only has access to context.Context
+		ctx := c.Request.Context()
+
+		// The transaction should be accessible from the request context
+		tx := logmanager.FromContext(ctx)
+		assert.NotNil(t, tx, "Transaction should be accessible from c.Request.Context()")
+
+		// Also verify it's the same transaction stored in Gin context
+		txFromGin, exists := c.Get(logmanager.TransactionContextKey.String())
+		assert.True(t, exists, "Transaction should exist in Gin context")
+		assert.Equal(t, txFromGin, tx, "Transaction from context.Context should match transaction from Gin context")
+
+		c.JSON(http.StatusOK, gin.H{"message": "ok"})
+	})
+
+	// Create a test HTTP request
+	req, err := http.NewRequest(http.MethodGet, "/test", nil)
+	assert.NoError(t, err)
+
+	// Create a ResponseRecorder to record the response
+	w := httptest.NewRecorder()
+
+	// Serve the test request
+	r.ServeHTTP(w, req)
+
+	// Check the response code
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
 func middleware(contexts map[string]string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		for k, v := range contexts {
