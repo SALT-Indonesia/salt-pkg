@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+## [1.37.0] - 2025-10-10
+- **Fix Gin middleware to propagate transaction to c.Request.Context() (#24)**
+  - Transaction is now accessible from `c.Request.Context()` using `logmanager.FromContext(ctx)`
+  - Enables downstream layers (service, repository, domain) to access transaction without Gin context
+  - Uses existing `RequestWithTransactionContext` helper for proper context propagation
+  - Add comprehensive test case `TestMiddleware_TransactionInRequestContext` to verify fix
+  - Maintains backward compatibility: transaction still accessible via Gin context
+  - All existing tests pass with no regressions
+
 ## [1.36.0] - 2025-10-07
 - **Implement missing gRPC client and stream interceptors (#19)**
   - Add `UnaryClientInterceptor` for client-side unary RPC logging with automatic trace ID propagation

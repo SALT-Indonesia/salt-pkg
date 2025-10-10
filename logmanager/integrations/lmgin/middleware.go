@@ -36,6 +36,9 @@ func Middleware(app *logmanager.Application) gin.HandlerFunc {
 
 		c.Set(logmanager.TransactionContextKey.String(), tx)
 
+		// Also propagate transaction to c.Request.Context() for downstream layers
+		c.Request = logmanager.RequestWithTransactionContext(c.Request, tx)
+
 		rw := &responseCapture{Body: new(bytes.Buffer), ResponseWriter: c.Writer}
 		rw.Header().Set(app.TraceIDHeaderKey(), traceID)
 		c.Writer = rw
