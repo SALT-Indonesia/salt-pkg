@@ -1,5 +1,36 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- **Custom Success Status Codes**: Added `ResponseSuccess[T]` generic type for returning custom HTTP status codes in successful responses
+  - Support for 201 Created, 202 Accepted, 204 No Content, 206 Partial Content, and other success status codes
+  - Similar pattern to existing `ResponseError[T]` for consistency
+  - Added `checkResponseSuccess()` reflection-based helper function for runtime type detection
+  - Maintains full backward compatibility - existing handlers continue to return 200 OK by default
+  - Type-safe implementation using Go generics with compile-time checking
+  - Comprehensive test coverage with 7 unit tests and 4 integration tests (94.8% coverage maintained)
+  - Complete documentation with usage examples for common scenarios (resource creation, async operations, deletion)
+  - Added example implementation in `examples/httpmanager/internal/delivery/create_user/` demonstrating 201 Created usage
+
+### Technical Details
+- Handler checks for `ResponseSuccess` type before applying default 200 OK status code
+- Reflection-based detection handles any response structure at runtime without compile-time type knowledge
+- Automatic JSON serialization of response body with appropriate Content-Type headers
+- Support for empty response bodies (204 No Content) and structured responses
+
+### Examples
+- 201 Created for resource creation endpoints
+- 202 Accepted for asynchronous processing operations
+- 204 No Content for successful deletion operations
+- Complete curl testing examples demonstrating all status code scenarios
+
+### Benefits
+- RESTful API compliance with proper HTTP status code semantics
+- Better client-side handling of different success scenarios
+- Improved API documentation and developer experience
+- No breaking changes - completely optional feature
+
 ## [0.15.0] - 2025-09-27
 
 ### Added
