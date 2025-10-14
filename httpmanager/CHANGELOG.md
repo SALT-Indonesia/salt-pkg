@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.16.0] - 2025-10-14
 
 ### Added
 - **Custom Success Status Codes**: Added `ResponseSuccess[T]` generic type for returning custom HTTP status codes in successful responses
