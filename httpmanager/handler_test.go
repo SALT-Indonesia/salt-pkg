@@ -283,6 +283,125 @@ func TestHandler_Middleware(t *testing.T) {
 	})
 }
 
+func TestHandler_ServeHTTP_CustomStatusCode(t *testing.T) {
+	t.Run("handler returns 201 Created with ResponseSuccess", func(t *testing.T) {
+		type CreateRequest struct {
+			Name string `json:"name"`
+		}
+		type CreateResponse struct {
+			ID      string `json:"id"`
+			Message string `json:"message"`
+		}
+
+		handlerFunc := func(ctx context.Context, req *CreateRequest) (*ResponseSuccess[CreateResponse], error) {
+			return &ResponseSuccess[CreateResponse]{
+				StatusCode: 201,
+				Body: CreateResponse{
+					ID:      "12345",
+					Message: "Resource created: " + req.Name,
+				},
+			}, nil
+		}
+
+		handler := NewHandler(http.MethodPost, handlerFunc)
+		req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(`{"name":"Test"}`))
+		req.Header.Set("Content-Type", "application/json")
+		rr := httptest.NewRecorder()
+
+		handler.ServeHTTP(rr, req)
+
+		assert.Equal(t, 201, rr.Code)
+		assert.Equal(t, "application/json", rr.Header().Get("Content-Type"))
+
+		var response CreateResponse
+		err := json.Unmarshal(rr.Body.Bytes(), &response)
+		require.NoError(t, err)
+		assert.Equal(t, "12345", response.ID)
+		assert.Equal(t, "Resource created: Test", response.Message)
+	})
+
+	t.Run("handler returns 202 Accepted with ResponseSuccess", func(t *testing.T) {
+		type AsyncRequest struct {
+			Data string `json:"data"`
+		}
+		type AsyncResponse struct {
+			Status string `json:"status"`
+			TaskID string `json:"task_id"`
+		}
+
+		handlerFunc := func(ctx context.Context, req *AsyncRequest) (*ResponseSuccess[AsyncResponse], error) {
+			return &ResponseSuccess[AsyncResponse]{
+				StatusCode: 202,
+				Body: AsyncResponse{
+					Status: "Accepted",
+					TaskID: "task-001",
+				},
+			}, nil
+		}
+
+		handler := NewHandler(http.MethodPost, handlerFunc)
+		req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(`{"data":"test"}`))
+		req.Header.Set("Content-Type", "application/json")
+		rr := httptest.NewRecorder()
+
+		handler.ServeHTTP(rr, req)
+
+		assert.Equal(t, 202, rr.Code)
+		assert.Equal(t, "application/json", rr.Header().Get("Content-Type"))
+
+		var response AsyncResponse
+		err := json.Unmarshal(rr.Body.Bytes(), &response)
+		require.NoError(t, err)
+		assert.Equal(t, "Accepted", response.Status)
+		assert.Equal(t, "task-001", response.TaskID)
+	})
+
+	t.Run("handler returns 204 No Content with ResponseSuccess", func(t *testing.T) {
+		type DeleteRequest struct {
+			ID string `json:"id"`
+		}
+		type EmptyResponse struct{}
+
+		handlerFunc := func(ctx context.Context, req *DeleteRequest) (*ResponseSuccess[EmptyResponse], error) {
+			return &ResponseSuccess[EmptyResponse]{
+				StatusCode: 204,
+				Body:       EmptyResponse{},
+			}, nil
+		}
+
+		handler := NewHandler(http.MethodDelete, handlerFunc)
+		req := httptest.NewRequest(http.MethodDelete, "/", strings.NewReader(`{"id":"123"}`))
+		req.Header.Set("Content-Type", "application/json")
+		rr := httptest.NewRecorder()
+
+		handler.ServeHTTP(rr, req)
+
+		assert.Equal(t, 204, rr.Code)
+		assert.Equal(t, "application/json", rr.Header().Get("Content-Type"))
+	})
+
+	t.Run("handler returns default 200 OK when not using ResponseSuccess", func(t *testing.T) {
+		handlerFunc := func(ctx context.Context, req *Request) (*Response, error) {
+			return &Response{Message: "Hello, " + req.Name}, nil
+		}
+
+		handler := NewHandler(http.MethodPost, handlerFunc)
+		req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(`{"name":"Test"}`))
+		req.Header.Set("Content-Type", "application/json")
+		rr := httptest.NewRecorder()
+
+		handler.ServeHTTP(rr, req)
+
+		assert.Equal(t, 200, rr.Code)
+		assert.Equal(t, "application/json", rr.Header().Get("Content-Type"))
+
+		var response Response
+		err := json.Unmarshal(rr.Body.Bytes(), &response)
+		require.NoError(t, err)
+		assert.Equal(t, "Hello, Test", response.Message)
+	})
+}
+
 // Test types that implement error interface
 type CustomStringError string
 func (e CustomStringError) Error() string { return string(e) }
@@ -299,6 +418,108 @@ type WrongFieldTypesError struct {
 	Body       interface{}
 }
 func (e *WrongFieldTypesError) Error() string { return e.Err }
+
+func TestCheckResponseSuccess(t *testing.T) {
+	t.Run("valid ResponseSuccess pointer with 201 status", func(t *testing.T) {
+		type TestBody struct {
+			ID      string `json:"id"`
+			Message string `json:"message"`
+		}
+
+		resp := &ResponseSuccess[TestBody]{
+			StatusCode: 201,
+			Body:       TestBody{ID: "123", Message: "Resource created"},
+		}
+
+		isCustom, statusCode, body := checkResponseSuccess(resp)
+
+		assert.True(t, isCustom)
+		assert.Equal(t, 201, statusCode)
+		assert.Equal(t, TestBody{ID: "123", Message: "Resource created"}, body)
+	})
+
+	t.Run("valid ResponseSuccess with 202 status", func(t *testing.T) {
+		type TestBody struct {
+			Status string `json:"status"`
+		}
+
+		resp := &ResponseSuccess[TestBody]{
+			StatusCode: 202,
+			Body:       TestBody{Status: "Accepted"},
+		}
+
+		isCustom, statusCode, body := checkResponseSuccess(resp)
+
+		assert.True(t, isCustom)
+		assert.Equal(t, 202, statusCode)
+		assert.Equal(t, TestBody{Status: "Accepted"}, body)
+	})
+
+	t.Run("valid ResponseSuccess with 204 and nil body", func(t *testing.T) {
+		type EmptyBody struct{}
+
+		resp := &ResponseSuccess[EmptyBody]{
+			StatusCode: 204,
+			Body:       EmptyBody{},
+		}
+
+		isCustom, statusCode, body := checkResponseSuccess(resp)
+
+		assert.True(t, isCustom)
+		assert.Equal(t, 204, statusCode)
+		assert.Equal(t, EmptyBody{}, body)
+	})
+
+	t.Run("nil response", func(t *testing.T) {
+		isCustom, statusCode, body := checkResponseSuccess(nil)
+
+		assert.False(t, isCustom)
+		assert.Equal(t, 0, statusCode)
+		assert.Nil(t, body)
+	})
+
+	t.Run("regular struct response", func(t *testing.T) {
+		resp := Response{Message: "regular response"}
+
+		isCustom, statusCode, body := checkResponseSuccess(&resp)
+
+		assert.False(t, isCustom)
+		assert.Equal(t, 0, statusCode)
+		assert.Nil(t, body)
+	})
+
+	t.Run("struct with wrong field types", func(t *testing.T) {
+		type InvalidSuccess struct {
+			StatusCode string      // Should be int
+			Body       interface{}
+		}
+
+		resp := &InvalidSuccess{
+			StatusCode: "201",
+			Body:       "body",
+		}
+
+		isCustom, statusCode, body := checkResponseSuccess(resp)
+
+		assert.False(t, isCustom)
+		assert.Equal(t, 0, statusCode)
+		assert.Nil(t, body)
+	})
+
+	t.Run("struct missing Body field", func(t *testing.T) {
+		type IncompleteSuccess struct {
+			StatusCode int
+		}
+
+		resp := &IncompleteSuccess{StatusCode: 201}
+
+		isCustom, statusCode, body := checkResponseSuccess(resp)
+
+		assert.False(t, isCustom)
+		assert.Equal(t, 0, statusCode)
+		assert.Nil(t, body)
+	})
+}
 
 func TestCheckCustomErrorV2(t *testing.T) {
 	t.Run("valid ResponseError pointer", func(t *testing.T) {

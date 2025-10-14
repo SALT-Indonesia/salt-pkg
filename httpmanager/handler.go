@@ -145,6 +145,18 @@ func (h *Handler[Req, Resp]) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Check if the response implements ResponseSuccess for custom status codes
+	if isCustomSuccess, statusCode, body := checkResponseSuccess(resp); isCustomSuccess {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(statusCode)
+		if body != nil {
+			encoder := json.NewEncoder(w)
+			_ = encoder.Encode(body)
+		}
+		return
+	}
+
+	// Default behavior: return 200 OK
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
@@ -190,5 +202,47 @@ func checkCustomErrorV2(err error) (bool, int, interface{}) {
 	statusCode := int(errValue.FieldByName("StatusCode").Int())
 	body := errValue.FieldByName("Body").Interface()
 	
+	return true, statusCode, body
+}
+
+// checkResponseSuccess uses reflection to check if a response is a ResponseSuccess of any type
+// and returns the status code and body if it is
+func checkResponseSuccess(resp interface{}) (bool, int, interface{}) {
+	if resp == nil {
+		return false, 0, nil
+	}
+
+	respValue := reflect.ValueOf(resp)
+
+	// Dereference pointer if necessary
+	if respValue.Kind() == reflect.Ptr {
+		respValue = respValue.Elem()
+	}
+
+	// Check if it's a struct
+	if respValue.Kind() != reflect.Struct {
+		return false, 0, nil
+	}
+
+	respType := respValue.Type()
+
+	// Check if the struct has the expected fields for ResponseSuccess
+	statusField, hasStatus := respType.FieldByName("StatusCode")
+	_, hasBody := respType.FieldByName("Body")
+
+	// Verify field types
+	if !hasStatus || !hasBody {
+		return false, 0, nil
+	}
+
+	// Check field types (StatusCode must be int)
+	if statusField.Type.Kind() != reflect.Int {
+		return false, 0, nil
+	}
+
+	// Extract values
+	statusCode := int(respValue.FieldByName("StatusCode").Int())
+	body := respValue.FieldByName("Body").Interface()
+
 	return true, statusCode, body
 }
