@@ -65,3 +65,23 @@ func (e *ResponseError[T]) Error() string {
 	}
 	return "response error with custom body"
 }
+
+// ResponseSuccess is a generic type that allows clients to return custom HTTP status codes
+// for successful responses (e.g., 201 Created, 202 Accepted, 204 No Content).
+// This provides flexibility when the default 200 OK status code doesn't accurately represent
+// the operation's outcome.
+type ResponseSuccess[T any] struct {
+	// StatusCode specifies the HTTP status code to return to the client for successful responses.
+	// Common success status codes:
+	//   - 200 (OK): Standard successful response (default if ResponseSuccess is not used)
+	//   - 201 (Created): Resource successfully created
+	//   - 202 (Accepted): Request accepted for processing but not yet completed
+	//   - 204 (No Content): Successful request with no response body
+	//   - 206 (Partial Content): Partial resource returned (range requests)
+	StatusCode int
+
+	// Body is the response structure that will be serialized to JSON and sent to the client.
+	// For 204 No Content responses, this should be nil or an empty struct.
+	// The httpmanager will automatically serialize this to JSON with proper Content-Type headers.
+	Body T
+}
