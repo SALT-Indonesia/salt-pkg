@@ -175,7 +175,8 @@ func TestServer_HealthCheck_DefaultPath(t *testing.T) {
 	server.router.ServeHTTP(rr, req)
 
 	assert.Equal(t, http.StatusOK, rr.Code)
-	assert.Empty(t, rr.Body.String())
+	assert.Equal(t, "application/json", rr.Header().Get("Content-Type"))
+	assert.JSONEq(t, `{"status":"ok"}`, rr.Body.String())
 }
 
 func TestServer_HealthCheck_CustomPath(t *testing.T) {
@@ -188,7 +189,8 @@ func TestServer_HealthCheck_CustomPath(t *testing.T) {
 	server.router.ServeHTTP(rr, req)
 
 	assert.Equal(t, http.StatusOK, rr.Code)
-	assert.Empty(t, rr.Body.String())
+	assert.Equal(t, "application/json", rr.Header().Get("Content-Type"))
+	assert.JSONEq(t, `{"status":"ok"}`, rr.Body.String())
 }
 
 func TestServer_HealthCheck_Disabled(t *testing.T) {
@@ -232,7 +234,8 @@ func TestServer_HealthCheck_WithOptions(t *testing.T) {
 	server.router.ServeHTTP(rr, req)
 
 	assert.Equal(t, http.StatusOK, rr.Code)
-	assert.Empty(t, rr.Body.String())
+	assert.Equal(t, "application/json", rr.Header().Get("Content-Type"))
+	assert.JSONEq(t, `{"status":"ok"}`, rr.Body.String())
 	assert.Equal(t, ":8081", server.server.Addr)
 	assert.Equal(t, 5*time.Second, server.server.ReadTimeout)
 }
