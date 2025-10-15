@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.16.1] - 2025-10-15
+
+### Fixed
+- **Health Check Response**: Fixed health check endpoint to return proper JSON response with status
+  - Health check endpoint now returns `{"status":"ok"}` with `Content-Type: application/json` header
+  - Previously returned empty response body which caused confusion
+  - Closes #28
+
 ## [0.16.0] - 2025-10-14
 
 ### Added
