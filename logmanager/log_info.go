@@ -22,8 +22,8 @@ func InfoWithContext(ctx context.Context, msg string, fields ...map[string]strin
 	if txn != nil {
 		// If we have a transaction, use its trace ID and logger
 		traceID = txn.TraceID()
-		if txn.TxnRecord != nil && txn.TxnRecord.logger != nil {
-			logger = txn.TxnRecord.logger
+		if txn.TxnRecord != nil && txn.logger != nil {
+			logger = txn.logger
 		}
 	} else if ctx != nil {
 		// If we don't have a transaction but have a context, try to get the trace ID directly

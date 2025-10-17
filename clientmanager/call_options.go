@@ -65,7 +65,8 @@ func (c callOptions) getRequestBody() (io.Reader, string, error) {
 	case c.isFormURLEncoded:
 		body, contentType = getFormURLEncodedBody(c.requestBody)
 	default:
-		body, contentType = getJSONBody(c.requestBody)
+		body = getJSONBody(c.requestBody)
+		contentType = "application/json"
 	}
 
 	var reqBody io.Reader

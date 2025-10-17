@@ -37,7 +37,7 @@ func headersJustWritten(tx *TxnRecord, code int, _ http.Header) {
 	}
 	tx.wroteHeader = true
 
-	//ResponseHeaderAttributes(tx.attrs, hdr)
+	// ResponseHeaderAttributes(tx.attrs, hdr)
 	internal.ResponseCodeAttribute(tx.attrs, code)
 }
 

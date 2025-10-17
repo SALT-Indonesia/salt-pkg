@@ -76,7 +76,8 @@ func (h *Handler[Req, Resp]) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	pathParams := extractPathParams(r)
 
 	// Add query parameters, path parameters, and the HTTP request to the context
-	ctx := context.WithValue(r.Context(), queryParamsKey, queryParams)
+	ctx := r.Context()
+	ctx = context.WithValue(ctx, queryParamsKey, queryParams)
 	ctx = context.WithValue(ctx, pathParamsKey, pathParams)
 	ctx = context.WithValue(ctx, RequestKey, r)
 
@@ -113,30 +114,14 @@ func (h *Handler[Req, Resp]) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			_ = encoder.Encode(body)
 			return
 		}
-		
+
 		// Check if the error is a CustomError to use client-provided values
 		if detailedErr, ok := IsCustomError(err); ok {
 			// Use client-provided values
-			errorResp = DetailedErrorResponse{
-				Status: false,
-				Code:   detailedErr.Code,
-				Message: MessageInfo{
-					Title: detailedErr.Title,
-					Desc:  detailedErr.Desc,
-				},
-				Data: nil,
-			}
+			errorResp.Code = detailedErr.Code
+			errorResp.Message.Title = detailedErr.Title
+			errorResp.Message.Desc = detailedErr.Desc
 			statusCode = detailedErr.StatusCode
-		} else {
-			errorResp = DetailedErrorResponse{
-				Status: false,
-				Code:   "500",
-				Message: MessageInfo{
-					Title: "unknow error",
-					Desc:  "unknow error",
-				},
-				Data: nil,
-			}
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(statusCode)

@@ -262,15 +262,6 @@ func extractMultipartFormData(a *Attributes, r *http.Request) {
 	}
 }
 
-// parseMultipartFormData parses multipart/form-data and extracts form fields and file information.
-// This function should be called explicitly when you want to parse AND log multipart forms (e.g., in server handlers).
-func parseMultipartFormData(a *Attributes, r *http.Request) {
-	if err := r.ParseMultipartForm(32 << 20); err != nil {
-		return
-	}
-	extractMultipartFormData(a, r)
-}
-
 // parseFormData parses application/x-www-form-urlencoded form data.
 func parseFormData(a *Attributes, r *http.Request) {
 	// Read body first and restore it after parsing
@@ -359,10 +350,10 @@ func truncateStringValueIfLong(val string) string {
 }
 
 func safeURL(u *url.URL) string {
-	if nil == u {
+	if u == nil {
 		return ""
 	}
-	if "" != u.Opaque {
+	if u.Opaque != "" {
 		return ""
 	}
 

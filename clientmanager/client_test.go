@@ -19,6 +19,13 @@ var (
 	})
 )
 
+// withClient is a test helper function to set a custom HTTP client
+func withClient(client *http.Client) Option {
+	return func(co *callOptions) {
+		co.client = client
+	}
+}
+
 func testClient(ctx context.Context, client *http.Client, tsURL string) (time.Duration, error) {
 	requests, eg, start := 100, new(errgroup.Group), time.Now()
 	for range requests {

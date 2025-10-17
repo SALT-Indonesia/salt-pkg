@@ -1,7 +1,6 @@
 package httpmanager
 
 import (
-	"context"
 	"github.com/gorilla/mux"
 	"net/http"
 	"os"
@@ -19,7 +18,7 @@ type StaticHandler struct {
 // NewStaticHandler creates a new handler for serving static files
 func NewStaticHandler(rootDir string) *StaticHandler {
 	// Create the root directory if it doesn't exist
-	if err := os.MkdirAll(rootDir, 0755); err != nil {
+	if err := os.MkdirAll(rootDir, 0750); err != nil {
 		panic("failed to create static files directory: " + err.Error())
 	}
 
@@ -58,13 +57,6 @@ func (h *StaticHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Extract the file path from the URL
 	urlPath := r.URL.Path
 
-	// Extract query parameters from the request URL
-	queryParams := QueryParams(r.URL.Query())
-
-	// Add query parameters and the HTTP request to the context
-	ctx := context.WithValue(r.Context(), queryParamsKey, queryParams)
-	ctx = context.WithValue(ctx, RequestKey, r)
-
 	// Sanitize the path to prevent directory traversal attacks
 	cleanPath := filepath.Clean(urlPath)
 	if strings.Contains(cleanPath, "..") {
@@ -93,12 +85,14 @@ func (h *StaticHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Open the file
-	file, err := os.Open(filePath)
+	file, err := os.Open(filepath.Clean(filePath)) // #nosec G304 - filePath is sanitized above
 	if err != nil {
 		http.Error(w, "Failed to open file", http.StatusInternalServerError)
 		return
 	}
-	defer file.Close()
+	defer func() {
+		_ = file.Close()
+	}()
 
 	// Set the content type based on file extension
 	contentType := getContentType(filePath)

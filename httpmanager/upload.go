@@ -38,7 +38,7 @@ func NewUploadHandler(method string, uploadDir string, handlerFunc func(ctx cont
 	}
 
 	// Create an upload directory if it doesn't exist
-	if err := os.MkdirAll(uploadDir, 0755); err != nil {
+	if err := os.MkdirAll(uploadDir, 0750); err != nil {
 		panic(fmt.Sprintf("failed to create upload directory: %v", err))
 	}
 
@@ -143,7 +143,7 @@ func (h *UploadHandler) processUploadedFiles(r *http.Request) (map[string][]*Upl
 				// Clean up any files that were already saved
 				for _, fileList := range result {
 					for _, file := range fileList {
-						os.Remove(file.SavedPath)
+						_ = os.Remove(file.SavedPath)
 					}
 				}
 				return nil, err
@@ -166,7 +166,9 @@ func (h *UploadHandler) saveFile(fileHeader *multipart.FileHeader) (*UploadedFil
 	if err != nil {
 		return nil, errors.New("failed to open uploaded file")
 	}
-	defer file.Close()
+	defer func() {
+		_ = file.Close()
+	}()
 
 	// Create a unique filename to prevent overwriting
 	filename := filepath.Base(fileHeader.Filename)
@@ -175,11 +177,13 @@ func (h *UploadHandler) saveFile(fileHeader *multipart.FileHeader) (*UploadedFil
 	filePath := filepath.Join(h.uploadDir, uniqueFilename)
 
 	// Create the destination file
-	dst, err := os.Create(filePath)
+	dst, err := os.Create(filepath.Clean(filePath)) // #nosec G304 - filePath is constructed from uploadDir and sanitized filename
 	if err != nil {
 		return nil, errors.New("failed to create destination file")
 	}
-	defer dst.Close()
+	defer func() {
+		_ = dst.Close()
+	}()
 
 	// Copy the uploaded file to the destination file
 	if _, err := io.Copy(dst, file); err != nil {

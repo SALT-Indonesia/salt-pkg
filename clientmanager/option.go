@@ -14,12 +14,6 @@ import (
 
 type Option func(*callOptions)
 
-func withClient(client *http.Client) Option {
-	return func(co *callOptions) {
-		co.client = client
-	}
-}
-
 func WithFormURLEncoded() Option {
 	return func(co *callOptions) {
 		co.isFormURLEncoded = true
@@ -33,7 +27,7 @@ func WithInsecure() Option {
 				co.client.Transport.(*http.Transport).TLSClientConfig.InsecureSkipVerify = true
 			} else {
 				co.client.Transport.(*http.Transport).TLSClientConfig = &tls.Config{
-					InsecureSkipVerify: true,
+					InsecureSkipVerify: true, // #nosec G402 - User explicitly requested insecure mode
 				}
 			}
 		}
@@ -156,6 +150,7 @@ func WithCertificates(certificates ...tls.Certificate) Option {
 			} else {
 				co.client.Transport.(*http.Transport).TLSClientConfig = &tls.Config{
 					Certificates: certificates,
+					MinVersion:   tls.VersionTLS12, // #nosec G402 - TLS 1.2+ required
 				}
 			}
 		}
@@ -169,7 +164,8 @@ func WithRootCertificate(rootCertificate *x509.CertPool) Option {
 				co.client.Transport.(*http.Transport).TLSClientConfig.RootCAs = rootCertificate
 			} else {
 				co.client.Transport.(*http.Transport).TLSClientConfig = &tls.Config{
-					RootCAs: rootCertificate,
+					RootCAs:    rootCertificate,
+					MinVersion: tls.VersionTLS12, // #nosec G402 - TLS 1.2+ required
 				}
 			}
 		}

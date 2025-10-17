@@ -49,15 +49,15 @@ func handleMessage[Message any](ctx context.Context, msg amqp.Delivery, queueNam
 		for _, handler := range handlers {
 			var body Message
 			if err := json.Unmarshal(msg.Body, &body); err != nil {
-				logmanager.LogErrorWithContext(ctx, err)
+				logmanager.ErrorWithContext(ctx, err)
 			}
 
 			domainErr, infrastructureErr := handler(body)
 			if domainErr != nil {
-				logmanager.LogErrorWithContext(ctx, domainErr)
+				logmanager.ErrorWithContext(ctx, domainErr)
 			}
 			if infrastructureErr != nil {
-				logmanager.LogErrorWithContext(ctx, infrastructureErr)
+				logmanager.ErrorWithContext(ctx, infrastructureErr)
 
 				requeue(msg)
 			}
@@ -80,7 +80,7 @@ func reconnect[Message any](ctx context.Context, queueName, exchange string, han
 
 func resubscribe[Message any](notify chan *amqp.Error, ctx context.Context, queueName, exchange string, handlers []Handler[Message]) {
 	if err := <-notify; err != nil {
-		logmanager.LogErrorWithContext(ctx, err)
+		logmanager.ErrorWithContext(ctx, err)
 
 		reconnect(ctx, queueName, exchange, handlers)
 	}
@@ -89,13 +89,13 @@ func resubscribe[Message any](notify chan *amqp.Error, ctx context.Context, queu
 func channelling[Message any](ctx context.Context, connection *amqp.Connection, queueName, exchange string, handlers []Handler[Message]) {
 	channel, err := connection.Channel()
 	if err != nil {
-		logmanager.LogErrorWithContext(ctx, err)
+		logmanager.ErrorWithContext(ctx, err)
 
 		return
 	}
 
 	if err := channel.Qos(prefetchCount, 0, false); err != nil { // 10 is prefetch count
-		logmanager.LogErrorWithContext(ctx, err)
+		logmanager.ErrorWithContext(ctx, err)
 
 		return
 	}
@@ -109,7 +109,7 @@ func channelling[Message any](ctx context.Context, connection *amqp.Connection, 
 		false,
 		nil,
 	); err != nil {
-		logmanager.LogErrorWithContext(ctx, err)
+		logmanager.ErrorWithContext(ctx, err)
 
 		return
 	}
@@ -123,20 +123,20 @@ func channelling[Message any](ctx context.Context, connection *amqp.Connection, 
 		nil,
 	)
 	if err != nil {
-		logmanager.LogErrorWithContext(ctx, err)
+		logmanager.ErrorWithContext(ctx, err)
 
 		return
 	}
 
 	if err := channel.QueueBind(queue.Name, exchange, exchange, false, nil); err != nil {
-		logmanager.LogErrorWithContext(ctx, err)
+		logmanager.ErrorWithContext(ctx, err)
 
 		return
 	}
 
 	msgs, err := channel.Consume(queue.Name, "", false, false, false, false, nil)
 	if err != nil {
-		logmanager.LogErrorWithContext(ctx, err)
+		logmanager.ErrorWithContext(ctx, err)
 
 		return
 	}
@@ -147,7 +147,7 @@ func channelling[Message any](ctx context.Context, connection *amqp.Connection, 
 func subscribe[Message any](ctx context.Context, queueName, exchange string, handlers []Handler[Message]) {
 	connection, err := amqp.Dial(os.Getenv("RABBITMQ_URL"))
 	if err != nil {
-		logmanager.LogErrorWithContext(ctx, err)
+		logmanager.ErrorWithContext(ctx, err)
 
 		reconnect(ctx, exchange, queueName, handlers)
 

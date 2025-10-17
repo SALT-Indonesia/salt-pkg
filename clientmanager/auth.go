@@ -1,7 +1,7 @@
 package clientmanager
 
 import (
-	"crypto/md5"
+	"crypto/md5" // #nosec G501 - MD5 required for legacy ESB API compatibility
 	"encoding/hex"
 	"fmt"
 	"net/http"
@@ -84,14 +84,12 @@ func AuthHawk(id, key string, option *hawk.Option) Auth {
 }
 
 func AuthAWS(params AWSParameters) Auth {
-	return func(r *http.Request) error {
-		return params.Signer(r)
-	}
+	return params.Signer
 }
 
 func AuthESB(apiKey, secret string) Auth {
 	return func(r *http.Request) error {
-		hasher := md5.New()
+		hasher := md5.New() // #nosec G401 - MD5 required for legacy ESB API compatibility
 		hasher.Write(fmt.Appendf(
 			[]byte{},
 			"%s%s%d",
