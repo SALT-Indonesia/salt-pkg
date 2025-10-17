@@ -7,14 +7,62 @@ on:
     branches: [ main ]
 
 jobs:
-  setup:
-    name: Setup Dependencies
+  changes:
+    name: Detect Changes
     runs-on: ubuntu-latest
-    
+    outputs:
+      clientmanager: ${{ steps.filter.outputs.clientmanager }}
+      httpmanager: ${{ steps.filter.outputs.httpmanager }}
+      logmanager: ${{ steps.filter.outputs.logmanager }}
+      eventmanager: ${{ steps.filter.outputs.eventmanager }}
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      
+
+    - name: Check for changes
+      uses: dorny/paths-filter@v3
+      id: filter
+      with:
+        filters: |
+          clientmanager:
+            - 'clientmanager/**/*.go'
+            - 'clientmanager/**/*.mod'
+            - 'clientmanager/**/*.sum'
+            - 'clientmanager/**/*.yml'
+            - 'clientmanager/**/*.yaml'
+          httpmanager:
+            - 'httpmanager/**/*.go'
+            - 'httpmanager/**/*.mod'
+            - 'httpmanager/**/*.sum'
+            - 'httpmanager/**/*.yml'
+            - 'httpmanager/**/*.yaml'
+          logmanager:
+            - 'logmanager/**/*.go'
+            - 'logmanager/**/*.mod'
+            - 'logmanager/**/*.sum'
+            - 'logmanager/**/*.yml'
+            - 'logmanager/**/*.yaml'
+          eventmanager:
+            - 'eventmanager/**/*.go'
+            - 'eventmanager/**/*.mod'
+            - 'eventmanager/**/*.sum'
+            - 'eventmanager/**/*.yml'
+            - 'eventmanager/**/*.yaml'
+
+  setup:
+    name: Setup Dependencies
+    needs: changes
+    if: |
+      needs.changes.outputs.clientmanager == 'true' ||
+      needs.changes.outputs.httpmanager == 'true' ||
+      needs.changes.outputs.logmanager == 'true' ||
+      needs.changes.outputs.eventmanager == 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
@@ -29,133 +77,225 @@ jobs:
         key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
         restore-keys: |
           ${{ runner.os }}-go-
-          
+
     - name: Install dependencies
       run: go work vendor
-      
+
     - name: Upload vendor directory
       uses: actions/upload-artifact@v4
       with:
         name: vendor
         path: vendor/
         retention-days: 1
-        
+
   test-clientmanager:
     name: Test Client Manager
-    needs: setup
+    needs: [changes, setup]
+    if: needs.changes.outputs.clientmanager == 'true'
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      
+
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
         go-version: '1.23'
-        
+
     - name: Download vendor directory
       uses: actions/download-artifact@v4
       with:
         name: vendor
         path: vendor/
-        
+
     - name: Run tests
       run: go test -v -race -coverprofile=coverage-clientmanager.txt -covermode=atomic ./clientmanager/...
-      
+
     - name: Upload coverage
       uses: actions/upload-artifact@v4
       with:
         name: coverage-clientmanager
         path: coverage-clientmanager.txt
         retention-days: 1
-        
+
   test-httpmanager:
     name: Test HTTP Manager
-    needs: setup
+    needs: [changes, setup]
+    if: needs.changes.outputs.httpmanager == 'true'
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      
+
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
         go-version: '1.23'
-        
+
     - name: Download vendor directory
       uses: actions/download-artifact@v4
       with:
         name: vendor
         path: vendor/
-        
+
     - name: Run tests
       run: go test -v -race -coverprofile=coverage-httpmanager.txt -covermode=atomic ./httpmanager/...
-      
+
     - name: Upload coverage
       uses: actions/upload-artifact@v4
       with:
         name: coverage-httpmanager
         path: coverage-httpmanager.txt
         retention-days: 1
-        
+
   test-logmanager:
     name: Test Log Manager
-    needs: setup
+    needs: [changes, setup]
+    if: needs.changes.outputs.logmanager == 'true'
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      
+
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
         go-version: '1.23'
-        
+
     - name: Download vendor directory
       uses: actions/download-artifact@v4
       with:
         name: vendor
         path: vendor/
-        
+
     - name: Run tests
       run: go test -v -race -coverprofile=coverage-logmanager.txt -covermode=atomic ./logmanager/...
-      
+
     - name: Upload coverage
       uses: actions/upload-artifact@v4
       with:
         name: coverage-logmanager
         path: coverage-logmanager.txt
         retention-days: 1
-        
+
   test-eventmanager:
     name: Test Event Manager
-    needs: setup
+    needs: [changes, setup]
+    if: needs.changes.outputs.eventmanager == 'true'
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      
+
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
         go-version: '1.23'
-        
+
     - name: Download vendor directory
       uses: actions/download-artifact@v4
       with:
         name: vendor
         path: vendor/
-        
+
     - name: Run tests
       run: go test -v -race -coverprofile=coverage-eventmanager.txt -covermode=atomic ./eventmanager/...
-      
+
     - name: Upload coverage
       uses: actions/upload-artifact@v4
       with:
         name: coverage-eventmanager
         path: coverage-eventmanager.txt
         retention-days: 1
+
+  lint-clientmanager:
+    name: Lint Client Manager
+    needs: changes
+    if: needs.changes.outputs.clientmanager == 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.23'
+
+    - name: Run golangci-lint
+      uses: golangci/golangci-lint-action@v6
+      with:
+        version: latest
+        working-directory: clientmanager
+        args: --config .golangci.yml
+
+  lint-httpmanager:
+    name: Lint HTTP Manager
+    needs: changes
+    if: needs.changes.outputs.httpmanager == 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.23'
+
+    - name: Run golangci-lint
+      uses: golangci/golangci-lint-action@v6
+      with:
+        version: latest
+        working-directory: httpmanager
+        args: --config .golangci.yml
+
+  lint-logmanager:
+    name: Lint Log Manager
+    needs: changes
+    if: needs.changes.outputs.logmanager == 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.23'
+
+    - name: Run golangci-lint
+      uses: golangci/golangci-lint-action@v6
+      with:
+        version: latest
+        working-directory: logmanager
+        args: --config .golangci.yml
+
+  lint-eventmanager:
+    name: Lint Event Manager
+    needs: changes
+    if: needs.changes.outputs.eventmanager == 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.23'
+
+    - name: Run golangci-lint
+      uses: golangci/golangci-lint-action@v6
+      with:
+        version: latest
+        working-directory: eventmanager
+        args: --config .golangci.yml

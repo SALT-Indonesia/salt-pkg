@@ -28,7 +28,7 @@ func getFilesBody(files map[string]string, requestBody any) (*bytes.Buffer, stri
 	body := new(bytes.Buffer)
 	writer := multipart.NewWriter(body)
 	for field, path := range files {
-		file, err := os.Open(path)
+		file, err := os.Open(filepath.Clean(path)) // #nosec G304 - file paths from user configuration
 		if err != nil {
 			return nil, "", err
 		}
@@ -62,12 +62,10 @@ func getFormURLEncodedBody(requestBody any) (*bytes.Buffer, string) {
 	return bytes.NewBufferString(formData.Encode()), "application/x-www-form-urlencoded"
 }
 
-func getJSONBody(requestBody any) (*bytes.Buffer, string) {
-	contentType := "application/json"
+func getJSONBody(requestBody any) *bytes.Buffer {
 	if requestBody != nil {
 		data, _ := json.Marshal(requestBody)
-
-		return bytes.NewBuffer(data), contentType
+		return bytes.NewBuffer(data)
 	}
-	return nil, contentType
+	return nil
 }

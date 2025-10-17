@@ -16,19 +16,27 @@ func (c ContextKey) String() string {
 	return string(c)
 }
 
+// contextKeyType is a custom type used for context keys to avoid collisions
+type contextKeyType int
+
+const (
+	txnContextKey contextKeyType = iota
+	traceIDCtxKey
+)
+
 // ToContext returns a new context with the current Transaction embedded, allowing it to be retrieved later.
 func (t *Transaction) ToContext(ctx context.Context) context.Context {
-	return context.WithValue(ctx, TransactionContextKey.String(), t)
+	return context.WithValue(ctx, txnContextKey, t)
 }
 
 // FromContext retrieves a Transaction from the given context if present.
 // It returns nil if the context is nil or if no Transaction is associated with the context.
 func FromContext(ctx context.Context) *Transaction {
-	if nil == ctx {
+	if ctx == nil {
 		return nil
 	}
 
-	if val, ok := ctx.Value(TransactionContextKey.String()).(*Transaction); ok {
+	if val, ok := ctx.Value(txnContextKey).(*Transaction); ok {
 		return val
 	}
 	return nil
@@ -44,10 +52,10 @@ func transactionFromRequestContext(req *http.Request) *Transaction {
 
 // NewContext returns a new context.Context that carries a Transaction instance using a specific context key.
 func NewContext(ctx context.Context, txn *Transaction) context.Context {
-	if nil == txn {
+	if txn == nil {
 		return ctx
 	}
-	return context.WithValue(ctx, TransactionContextKey.String(), txn)
+	return context.WithValue(ctx, txnContextKey, txn)
 }
 
 // RequestWithTransactionContext attaches a Transaction to the given HTTP request's context.
@@ -65,7 +73,7 @@ func RequestWithTransactionContext(req *http.Request, txn *Transaction) *http.Re
 
 // RequestWithContext attaches a key-value pair to the HTTP request's context and returns the modified request.
 func RequestWithContext(req *http.Request, key ContextKey, value string) *http.Request {
-	if "" == key || "" == value || nil == req {
+	if key == "" || value == "" || req == nil {
 		return req
 	}
 

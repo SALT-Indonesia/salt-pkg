@@ -12,7 +12,7 @@ func ExampleLogInfoWithContext() {
 	LogInfoWithContext(ctx, "Service started successfully")
 
 	// Example 2: Usage with trace ID in context
-	ctxWithTrace := context.WithValue(ctx, TraceIDContextKey.String(), "trace-12345")
+	ctxWithTrace := context.WithValue(ctx, traceIDCtxKey, "trace-12345")
 	LogInfoWithContext(ctxWithTrace, "User authentication completed")
 
 	// Example 3: Usage with optional fields

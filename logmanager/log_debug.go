@@ -21,16 +21,17 @@ func DebugWithContext(ctx context.Context, msg string, fields ...map[string]stri
 
 	// Try to get the transaction from the context
 	txn := FromContext(ctx)
-	if txn != nil {
+	switch {
+	case txn != nil:
 		// If we have a transaction, use its trace ID, logger, and debug setting
 		traceID = txn.TraceID()
 		if txn.TxnRecord != nil {
-			if txn.TxnRecord.logger != nil {
-				logger = txn.TxnRecord.logger
+			if txn.logger != nil {
+				logger = txn.logger
 			}
-			debugEnabled = txn.TxnRecord.debug
+			debugEnabled = txn.debug
 		}
-	} else if ctx != nil {
+	case ctx != nil:
 		// If we don't have a transaction but have a context, try to get the trace ID directly
 		if val, ok := ctx.Value(TraceIDContextKey.String()).(string); ok && val != "" {
 			traceID = val
@@ -38,7 +39,7 @@ func DebugWithContext(ctx context.Context, msg string, fields ...map[string]stri
 		// Without a transaction, we can't determine debug mode, so we assume it's enabled
 		// for backward compatibility
 		debugEnabled = true
-	} else {
+	default:
 		// No context provided, assume debug is enabled for backward compatibility
 		debugEnabled = true
 	}

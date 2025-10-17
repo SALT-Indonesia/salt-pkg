@@ -119,16 +119,14 @@ func BindQueryParams(ctx context.Context, dst interface{}) error {
 		}
 
 		// Bind based on field type
-		if err := bindFieldValue(fieldValue, paramValues); err != nil {
-			continue // Skip fields that can't be bound
-		}
+		bindFieldValue(fieldValue, paramValues)
 	}
 
 	return nil
 }
 
 // bindFieldValue binds query parameter values to a struct field based on its type
-func bindFieldValue(fieldValue reflect.Value, paramValues []string) error {
+func bindFieldValue(fieldValue reflect.Value, paramValues []string) {
 	fieldType := fieldValue.Type()
 
 	switch fieldType.Kind() {
@@ -183,6 +181,4 @@ func bindFieldValue(fieldValue reflect.Value, paramValues []string) error {
 			fieldValue.Set(reflect.ValueOf(boolSlice))
 		}
 	}
-
-	return nil
 }

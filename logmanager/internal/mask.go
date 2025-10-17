@@ -94,7 +94,7 @@ func (m *JSONMasker) shouldApplyStructTagMasking(data interface{}) bool {
 		if v.IsNil() {
 			return false
 		}
-		v = v.Elem()
+		_ = v.Elem() // Dereference pointer
 		t = t.Elem()
 	}
 
@@ -253,15 +253,6 @@ func (m *JSONMasker) convertToMap(data interface{}) (interface{}, error) {
 	}
 }
 
-func (m *JSONMasker) toMap(data interface{}) (map[string]interface{}, bool) {
-	switch v := data.(type) {
-	case map[string]interface{}:
-		return v, true
-	default:
-		return nil, false
-	}
-}
-
 // applyJSONPathConfig applies a single JSONPath configuration to the data
 func (m *JSONMasker) applyJSONPathConfig(data interface{}, config MaskingConfig) interface{} {
 	// Check if this is a recursive descent pattern ($..fieldname)
@@ -354,7 +345,7 @@ func (m *JSONMasker) recursiveMaskField(data interface{}, fieldName string, conf
 }
 
 // maskJSONPathValue masks a specific value found by JSONPath
-func (m *JSONMasker) maskJSONPathValue(data interface{}, jsonPath string, originalValue interface{}, config MaskingConfig) interface{} {
+func (m *JSONMasker) maskJSONPathValue(data interface{}, _ string, originalValue interface{}, config MaskingConfig) interface{} {
 	maskedValue := m.maskValueWithMaskingConfig(originalValue, config)
 
 	// Replace the original value with the masked value in the data structure
