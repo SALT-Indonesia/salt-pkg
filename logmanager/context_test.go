@@ -41,7 +41,7 @@ func TestNewContext(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := logmanager.NewContext(tt.args.ctx, tt.args.txn)
-			tx := ctx.Value(logmanager.TransactionContextKey.String())
+			tx := logmanager.FromContext(ctx)
 			if tt.wantNil {
 				assert.Nil(t, tx)
 				return
