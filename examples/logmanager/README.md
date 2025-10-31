@@ -21,6 +21,8 @@ examples/logmanager/
 │   ├── content-types/    # Content type variations
 │   ├── query-headers/    # Query params & headers
 │   └── advanced/         # File uploads, streaming
+├── 07-resty-client/      # Resty HTTP client integration
+├── 08-native-http-client/# Native Go HTTP client integration
 └── shared/               # Shared utilities
     ├── models/           # Common data models
     └── config/           # Configuration helpers
@@ -58,6 +60,10 @@ cd 06-http-methods/methods && go run main.go       # :8080
 cd 06-http-methods/content-types && go run main.go # :8081
 cd 06-http-methods/query-headers && go run main.go # :8082
 cd 06-http-methods/advanced && go run main.go      # :8083
+
+# HTTP clients
+cd 07-resty-client && go run main.go
+cd 08-native-http-client && go run main.go
 ```
 
 ## 📚 Examples Overview
@@ -76,6 +82,8 @@ cd 06-http-methods/advanced && go run main.go      # :8083
 | **Content Types** | `06-http-methods/content-types/` | All content type variations |
 | **Query & Headers** | `06-http-methods/query-headers/` | Parameters and headers |
 | **Advanced HTTP** | `06-http-methods/advanced/` | File uploads, streaming |
+| **Resty Client** | `07-resty-client/` | Resty HTTP client with logmanager |
+| **Native HTTP Client** | `08-native-http-client/` | Go stdlib HTTP client integration |
 
 ## 🔧 Features Demonstrated
 
@@ -115,6 +123,7 @@ Flexible configuration using:
 4. **Try Messaging** (`04-messaging/`) - Async processing patterns
 5. **Implement Masking** (`05-masking/`) - Data privacy protection
 6. **Master HTTP** (`06-http-methods/`) - Complete HTTP protocol coverage
+7. **HTTP Clients** (`07-resty-client/`, `08-native-http-client/`) - Client-side request logging
 
 ## 🐳 Docker Setup for Messaging
 
