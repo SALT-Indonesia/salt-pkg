@@ -55,10 +55,12 @@ func demonstrateCustomMasking(app *logmanager.Application, client *resty.Client)
 
 	maskingConfigs := []logmanager.MaskingConfig{
 		{
+			// EmailMask preserves domain and masks username middle
+			// Example: john.doe@example.com -> jo****oe@example.com
 			FieldPattern: "email",
-			Type:         logmanager.PartialMask,
-			ShowFirst:    3,
-			ShowLast:     10,
+			Type:         logmanager.EmailMask,
+			ShowFirst:    2, // Show first 2 chars of username
+			ShowLast:     2, // Show last 2 chars of username
 		},
 		{
 			FieldPattern: "password",
@@ -127,6 +129,8 @@ func demonstratePasswordMasking(app *logmanager.Application, client *resty.Clien
 
 func demonstrateEmailMasking(app *logmanager.Application, client *resty.Client) {
 	fmt.Println("3. Email masking convenience function")
+	fmt.Println("   Uses EmailMask type: preserves domain, masks username middle")
+	fmt.Println("   Example: arfan.azhari@salt.id -> ar********ri@salt.id")
 
 	txn := app.StartHttp("trace-003", "POST /users")
 	ctx := txn.ToContext(context.Background())
@@ -135,8 +139,9 @@ func demonstrateEmailMasking(app *logmanager.Application, client *resty.Client) 
 		SetContext(ctx).
 		SetBody(map[string]interface{}{
 			"username":     "johndoe",
-			"email":        "john.doe@example.com",
-			"backup_email": "backup@example.com",
+			"email":        "arfan.azhari@salt.id",
+			"backup_email": "backup.user@example.com",
+			"work_email":   "a@test.com", // Single char username edge case
 		}).
 		Post("https://httpbin.org/post")
 
@@ -145,6 +150,11 @@ func demonstrateEmailMasking(app *logmanager.Application, client *resty.Client) 
 		return
 	}
 
+	// NewTxnWithEmailMasking uses EmailMask type with ShowFirst=2, ShowLast=2
+	// Results:
+	// - arfan.azhari@salt.id     -> ar********ri@salt.id
+	// - backup.user@example.com  -> ba********er@example.com
+	// - a@test.com               -> *@test.com (single char edge case)
 	txnResp := lmresty.NewTxnWithEmailMasking(resp)
 	if txnResp != nil {
 		txnResp.End()
