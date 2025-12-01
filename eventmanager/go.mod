@@ -5,7 +5,7 @@ go 1.23.0
 toolchain go1.23.4
 
 require (
-	github.com/SALT-Indonesia/salt-pkg/logmanager v1.34.0
+	github.com/SALT-Indonesia/salt-pkg/logmanager v1.38.1
 	github.com/go-playground/validator/v10 v10.26.0
 	github.com/google/uuid v1.6.0
 	github.com/joho/godotenv v1.5.1
