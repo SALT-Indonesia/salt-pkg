@@ -2,6 +2,8 @@ github.com/Azure/go-ntlmssp v0.0.0-20221128193559-754e69321358 h1:mFRzDkZVAjdal+
 github.com/Azure/go-ntlmssp v0.0.0-20221128193559-754e69321358/go.mod h1:chxPXzSsl7ZWRAuOIE23GDNzjWuZquvFlgA8xmpunjU=
 github.com/SALT-Indonesia/salt-pkg/logmanager v1.34.0 h1:Vu0wnKPcKbFrVl6zgQURAHzwQHPbZOKoHtKp/pb3tp8=
 github.com/SALT-Indonesia/salt-pkg/logmanager v1.34.0/go.mod h1:na+KCOW3Umy2zNWSirpanHIDweuEklxqI0yRp9gV0Qs=
+github.com/SALT-Indonesia/salt-pkg/logmanager v1.38.1 h1:G5Aq4CVzgC2X7JdYI6SFXWB4Og5tQ/Ev7ypzsxPCGHU=
+github.com/SALT-Indonesia/salt-pkg/logmanager v1.38.1/go.mod h1:na+KCOW3Umy2zNWSirpanHIDweuEklxqI0yRp9gV0Qs=
 github.com/aws/aws-sdk-go-v2 v1.36.3 h1:mJoei2CxPutQVxaATCzDUjcZEjVRdpsiiXi2o38yqWM=
 github.com/aws/aws-sdk-go-v2 v1.36.3/go.mod h1:LLXuLpgzEbD766Z5ECcRmi8AzSwfZItDtmABVkRLGzg=
 github.com/aws/aws-sdk-go-v2 v1.38.2 h1:QUkLO1aTW0yqW95pVzZS0LGFanL71hJ0a49w4TJLMyM=
