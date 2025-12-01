@@ -48,6 +48,7 @@ func WithTraceIDHeaderKey(key string) Option {
 }
 
 // WithMaskConfigs configures the application with a list of MaskConfigs for masking sensitive data in logs.
+//
 // Deprecated: Use WithMaskingConfig with JSONPath support instead.
 func WithMaskConfigs(maskConfigs MaskConfigs) Option {
 	return func(app *Application) {
