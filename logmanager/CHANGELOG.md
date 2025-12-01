@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [1.38.1] - 2025-12-01
+- **Fix StructMaskWithConfig to apply JSONPath masking for non-struct types**
+  - Previously, masking would skip JSONPath/FieldPattern configs when input was a map
+  - Now correctly applies all masking configurations regardless of input type
+  - Fixes EmailMask and other mask types not working with `map[string]interface{}` inputs
+
 ## [1.38.0] - 2025-12-01
 - **Add EmailMask type for proper email address masking (#34)**
   - New `EmailMask` mask type that preserves the domain and masks only the username portion
