@@ -6,7 +6,7 @@ toolchain go1.23.4
 
 require (
 	github.com/Azure/go-ntlmssp v0.0.0-20221128193559-754e69321358
-	github.com/SALT-Indonesia/salt-pkg/logmanager v1.34.0
+	github.com/SALT-Indonesia/salt-pkg/logmanager v1.38.1
 	github.com/aws/aws-sdk-go-v2 v1.38.2
 	github.com/aws/aws-sdk-go-v2/credentials v1.18.8
 	github.com/dghubble/oauth1 v0.7.3
