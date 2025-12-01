@@ -169,6 +169,32 @@ Protect sensitive information in logs with powerful JSONPath-based masking. LogM
 | `FullMask` | Replace entire value with asterisks | `"token": "************"` |
 | `PartialMask` | Show first/last characters, mask middle | `"apiKey": "sk-1***cdef"` |
 | `HideMask` | Completely hide field (single asterisk) | `"secret": "*"` |
+| `EmailMask` | Preserve domain, mask username middle | `"email": "ar********ri@salt.id"` |
+
+#### Email Masking
+
+The `EmailMask` type is specifically designed for email addresses. It preserves the full domain while masking only the middle portion of the username:
+
+```go
+logmanager.WithMaskingConfig([]logmanager.MaskingConfig{
+    {
+        FieldPattern: "email",
+        Type: logmanager.EmailMask,
+        ShowFirst: 2,  // Show first 2 chars of username (default)
+        ShowLast: 2,   // Show last 2 chars of username (default)
+    },
+})
+```
+
+**Examples:**
+| Input | Output |
+|-------|--------|
+| `arfan.azhari@salt.id` | `ar********ri@salt.id` |
+| `john.doe@example.com` | `jo****oe@example.com` |
+| `ab@test.com` | `a*@test.com` (short username) |
+| `a@test.com` | `*@test.com` (single char) |
+
+The domain is always fully preserved regardless of its length. For invalid emails (without `@`), the masking falls back to `PartialMask` behavior.
 
 #### JSONPath Patterns
 

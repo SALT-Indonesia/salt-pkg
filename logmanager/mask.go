@@ -20,6 +20,10 @@ const (
 
 	// HideMask hides the value entirely without displaying any characters.
 	HideMask = internal.HideMask
+
+	// EmailMask masks email addresses preserving domain and showing first/last chars of username
+	// Example: arfan.azhari@salt.id → ar******ri@salt.id
+	EmailMask = internal.EmailMask
 )
 
 // MaskingConfig defines how a specific field should be masked using JSONPath or field pattern

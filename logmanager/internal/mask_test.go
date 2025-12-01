@@ -777,18 +777,187 @@ func TestJSONMasker_PartialMaskingTypes(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			masker := internal.NewJSONMasker(tt.maskConfigs)
 			result := masker.MaskData(tt.input)
-			
+
 			resultMap, ok := result.(map[string]interface{})
 			assert.True(t, ok, "Result should be a map")
-			
+
 			// Check masking at root level
 			for fieldName, checkFn := range tt.fieldChecks {
 				if val, exists := resultMap[fieldName]; exists {
 					valStr := val.(string)
-					assert.True(t, checkFn(valStr), 
+					assert.True(t, checkFn(valStr),
 						"Field %s masking failed. Expected to pass check but got: %s", fieldName, valStr)
 				}
 			}
 		})
 	}
+}
+
+func TestJSONMasker_EmailMask(t *testing.T) {
+	t.Run("standard email with default settings", func(t *testing.T) {
+		masker := internal.NewJSONMasker([]internal.MaskingConfig{
+			{
+				FieldPattern: "email",
+				Type:         internal.EmailMask,
+			},
+		})
+		input := map[string]interface{}{
+			"email": "arfan.azhari@salt.id",
+		}
+		result := masker.MaskData(input)
+		resultMap := result.(map[string]interface{})
+		// Default: show first 2 and last 2 chars of username
+		// arfan.azhari -> ar********ri
+		assert.Equal(t, "ar********ri@salt.id", resultMap["email"])
+	})
+
+	t.Run("email with custom show first and last", func(t *testing.T) {
+		masker := internal.NewJSONMasker([]internal.MaskingConfig{
+			{
+				FieldPattern: "email",
+				Type:         internal.EmailMask,
+				ShowFirst:    3,
+				ShowLast:     3,
+			},
+		})
+		input := map[string]interface{}{
+			"email": "john.doe@example.com",
+		}
+		result := masker.MaskData(input)
+		resultMap := result.(map[string]interface{})
+		// john.doe -> joh**doe
+		assert.Equal(t, "joh**doe@example.com", resultMap["email"])
+	})
+
+	t.Run("short username email", func(t *testing.T) {
+		masker := internal.NewJSONMasker([]internal.MaskingConfig{
+			{
+				FieldPattern: "email",
+				Type:         internal.EmailMask,
+			},
+		})
+		input := map[string]interface{}{
+			"email": "ab@test.com",
+		}
+		result := masker.MaskData(input)
+		resultMap := result.(map[string]interface{})
+		// ab is too short (2 chars), show first char and mask rest
+		assert.Equal(t, "a*@test.com", resultMap["email"])
+	})
+
+	t.Run("single char username email", func(t *testing.T) {
+		masker := internal.NewJSONMasker([]internal.MaskingConfig{
+			{
+				FieldPattern: "email",
+				Type:         internal.EmailMask,
+			},
+		})
+		input := map[string]interface{}{
+			"email": "a@test.com",
+		}
+		result := masker.MaskData(input)
+		resultMap := result.(map[string]interface{})
+		// Single char username gets fully masked
+		assert.Equal(t, "*@test.com", resultMap["email"])
+	})
+
+	t.Run("invalid email without @", func(t *testing.T) {
+		masker := internal.NewJSONMasker([]internal.MaskingConfig{
+			{
+				FieldPattern: "email",
+				Type:         internal.EmailMask,
+				ShowFirst:    2,
+				ShowLast:     2,
+			},
+		})
+		input := map[string]interface{}{
+			"email": "notanemail",
+		}
+		result := masker.MaskData(input)
+		resultMap := result.(map[string]interface{})
+		// Falls back to partial mask: "notanemail" (10 chars) -> show 2 first + 6 masked + 2 last
+		assert.Equal(t, "no******il", resultMap["email"])
+	})
+
+	t.Run("email in nested object", func(t *testing.T) {
+		masker := internal.NewJSONMasker([]internal.MaskingConfig{
+			{
+				FieldPattern: "email",
+				Type:         internal.EmailMask,
+			},
+		})
+		input := map[string]interface{}{
+			"user": map[string]interface{}{
+				"name":  "John",
+				"email": "john.doe@company.org",
+			},
+		}
+		result := masker.MaskData(input)
+		resultMap := result.(map[string]interface{})
+		userMap := resultMap["user"].(map[string]interface{})
+		// john.doe -> jo****oe
+		assert.Equal(t, "jo****oe@company.org", userMap["email"])
+	})
+
+	t.Run("multiple emails in array", func(t *testing.T) {
+		masker := internal.NewJSONMasker([]internal.MaskingConfig{
+			{
+				FieldPattern: "email",
+				Type:         internal.EmailMask,
+			},
+		})
+		input := map[string]interface{}{
+			"users": []interface{}{
+				map[string]interface{}{"email": "alice@example.com"},
+				map[string]interface{}{"email": "bob.smith@test.org"},
+			},
+		}
+		result := masker.MaskData(input)
+		resultMap := result.(map[string]interface{})
+		users := resultMap["users"].([]interface{})
+		user0 := users[0].(map[string]interface{})
+		user1 := users[1].(map[string]interface{})
+		// alice -> al*ce
+		assert.Equal(t, "al*ce@example.com", user0["email"])
+		// bob.smith -> bo*****th
+		assert.Equal(t, "bo*****th@test.org", user1["email"])
+	})
+
+	t.Run("email with JSONPath recursive pattern", func(t *testing.T) {
+		masker := internal.NewJSONMasker([]internal.MaskingConfig{
+			{
+				JSONPath: "$..email",
+				Type:     internal.EmailMask,
+			},
+		})
+		input := map[string]interface{}{
+			"email": "root@domain.com",
+			"nested": map[string]interface{}{
+				"email": "nested@domain.com",
+			},
+		}
+		result := masker.MaskData(input)
+		resultMap := result.(map[string]interface{})
+		// "root" (4 chars) with default 2+2=4, falls back to show first char + mask rest
+		assert.Equal(t, "r***@domain.com", resultMap["email"])
+		nestedMap := resultMap["nested"].(map[string]interface{})
+		// "nested" (6 chars) with default 2+2=4 → "ne" + "**" + "ed"
+		assert.Equal(t, "ne**ed@domain.com", nestedMap["email"])
+	})
+
+	t.Run("email with long domain preserved", func(t *testing.T) {
+		masker := internal.NewJSONMasker([]internal.MaskingConfig{
+			{
+				FieldPattern: "email",
+				Type:         internal.EmailMask,
+			},
+		})
+		input := map[string]interface{}{
+			"email": "username@subdomain.verylongdomain.co.id",
+		}
+		result := masker.MaskData(input)
+		resultMap := result.(map[string]interface{})
+		// Domain is fully preserved, "username" (8 chars) → "us****me"
+		assert.Equal(t, "us****me@subdomain.verylongdomain.co.id", resultMap["email"])
+	})
 }

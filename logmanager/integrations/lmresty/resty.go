@@ -111,14 +111,16 @@ func NewTxnWithPasswordMasking(resp *resty.Response) *logmanager.TxnRecord {
 	return NewTxnWithMasking(resp, configs)
 }
 
-// NewTxnWithEmailMasking creates a transaction with email masking (partial)
+// NewTxnWithEmailMasking creates a transaction with email masking
+// Masks email addresses preserving domain and showing first/last chars of username
+// Example: arfan.azhari@salt.id → ar******ri@salt.id
 func NewTxnWithEmailMasking(resp *resty.Response) *logmanager.TxnRecord {
 	configs := []logmanager.MaskingConfig{
 		{
 			FieldPattern: "email",
-			Type:         logmanager.PartialMask,
-			ShowFirst:    3,
-			ShowLast:     10, // Show @domain.com part
+			Type:         logmanager.EmailMask,
+			ShowFirst:    2, // Show first 2 chars of username
+			ShowLast:     2, // Show last 2 chars of username
 		},
 	}
 	return NewTxnWithMasking(resp, configs)

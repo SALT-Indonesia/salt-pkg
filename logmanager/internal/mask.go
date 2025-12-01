@@ -23,6 +23,10 @@ const (
 
 	// HideMask hides the value entirely without displaying any characters.
 	HideMask
+
+	// EmailMask masks email addresses preserving domain and showing first/last chars of username
+	// Example: arfan.azhari@salt.id → ar******ri@salt.id
+	EmailMask
 )
 
 // MaskingConfig defines how a specific field should be masked using JSONPath or field pattern
@@ -151,9 +155,56 @@ func (m *JSONMasker) maskValueWithMaskingConfig(value interface{}, config Maskin
 			strings.Repeat("*", len(strValue)-showFirst-showLast) +
 			strValue[len(strValue)-showLast:]
 
+	case EmailMask:
+		return m.maskEmail(strValue, config)
+
 	default:
 		return value
 	}
+}
+
+// maskEmail masks an email address preserving the domain and showing first/last chars of username
+// Example: arfan.azhari@salt.id → ar******ri@salt.id
+func (m *JSONMasker) maskEmail(email string, config MaskingConfig) string {
+	// Find @ position
+	atIndex := strings.LastIndex(email, "@")
+	if atIndex == -1 {
+		// Not a valid email, fall back to partial mask
+		return m.maskValueWithMaskingConfig(email, MaskingConfig{
+			Type:      PartialMask,
+			ShowFirst: config.ShowFirst,
+			ShowLast:  config.ShowLast,
+		}).(string)
+	}
+
+	username := email[:atIndex]
+	domain := email[atIndex:] // includes @
+
+	// Use config values or defaults (2 chars first, 2 chars last)
+	showFirst := config.ShowFirst
+	if showFirst == 0 {
+		showFirst = 2
+	}
+	showLast := config.ShowLast
+	if showLast == 0 {
+		showLast = 2
+	}
+
+	// Handle short usernames
+	if len(username) <= showFirst+showLast {
+		// Username too short to mask meaningfully, show first char and mask rest
+		if len(username) <= 1 {
+			return "*" + domain
+		}
+		return string(username[0]) + strings.Repeat("*", len(username)-1) + domain
+	}
+
+	// Mask username: show first N and last N chars, mask the middle
+	maskedUsername := username[:showFirst] +
+		strings.Repeat("*", len(username)-showFirst-showLast) +
+		username[len(username)-showLast:]
+
+	return maskedUsername + domain
 }
 
 // maskFields recursively masks fields in a nested structure
