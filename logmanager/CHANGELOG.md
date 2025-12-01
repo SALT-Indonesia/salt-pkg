@@ -2,6 +2,22 @@
 
 ## [Unreleased]
 
+## [1.38.0] - 2025-12-01
+- **Add EmailMask type for proper email address masking (#34)**
+  - New `EmailMask` mask type that preserves the domain and masks only the username portion
+  - Example: `arfan.azhari@salt.id` → `ar********ri@salt.id`
+  - Configurable `ShowFirst` and `ShowLast` for username (defaults: 2 and 2)
+  - Domain is always fully preserved regardless of length
+  - Handles edge cases: short usernames, single character usernames, invalid emails
+  - Update `NewTxnWithEmailMasking` convenience function to use `EmailMask` type
+  - Add 9 comprehensive unit tests covering various email masking scenarios
+  - Works with field patterns, JSONPath expressions, and recursive patterns
+- **BREAKING CHANGE: Remove deprecated masking APIs**
+  - Remove `MaskConfig` type alias (use `MaskingConfig` instead)
+  - Remove `MaskConfigs` type (use `[]MaskingConfig` instead)
+  - Remove `GetMaskConfigs()` method (use `ConvertMaskingConfigs()` instead)
+  - Remove `WithMaskConfigs()` option (use `WithMaskingConfig()` instead)
+
 ## [1.37.0] - 2025-10-10
 - **Fix Gin middleware to propagate transaction to c.Request.Context() (#24)**
   - Transaction is now accessible from `c.Request.Context()` using `logmanager.FromContext(ctx)`
