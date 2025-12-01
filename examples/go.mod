@@ -5,7 +5,7 @@ go 1.23.0
 require (
 	github.com/IBM/sarama v1.46.0
 	github.com/SALT-Indonesia/salt-pkg/httpmanager v0.12.0
-	github.com/SALT-Indonesia/salt-pkg/logmanager v1.38.0
+	github.com/SALT-Indonesia/salt-pkg/logmanager v1.38.1
 	github.com/gin-gonic/gin v1.10.1
 	github.com/go-resty/resty/v2 v2.16.5
 	github.com/google/uuid v1.6.0

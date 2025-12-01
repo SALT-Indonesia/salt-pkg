@@ -4,6 +4,8 @@ github.com/SALT-Indonesia/salt-pkg/httpmanager v0.12.0 h1:zMsCWh3rekEdDCHedUtJo3
 github.com/SALT-Indonesia/salt-pkg/httpmanager v0.12.0/go.mod h1:Cf+DSdNJZSN+qHgpPca0FexqMLIua1+luXZ2oPVVVSU=
 github.com/SALT-Indonesia/salt-pkg/logmanager v1.38.0 h1:/eXzOZ73iWzJSe/0HowVJ+WTveDkI1Cjw6bDnJDQK14=
 github.com/SALT-Indonesia/salt-pkg/logmanager v1.38.0/go.mod h1:na+KCOW3Umy2zNWSirpanHIDweuEklxqI0yRp9gV0Qs=
+github.com/SALT-Indonesia/salt-pkg/logmanager v1.38.1 h1:G5Aq4CVzgC2X7JdYI6SFXWB4Og5tQ/Ev7ypzsxPCGHU=
+github.com/SALT-Indonesia/salt-pkg/logmanager v1.38.1/go.mod h1:na+KCOW3Umy2zNWSirpanHIDweuEklxqI0yRp9gV0Qs=
 github.com/bytedance/sonic v1.14.0 h1:/OfKt8HFw0kh2rj8N0F6C/qPGRESq0BbaNZgcNXXzQQ=
 github.com/bytedance/sonic v1.14.0/go.mod h1:WoEbx8WTcFJfzCe0hbmyTGrfjt8PzNEBdxlNUO24NhA=
 github.com/bytedance/sonic/loader v0.3.0 h1:dskwH8edlzNMctoruo8FPTJDF3vLtDT0sXZwvZJyqeA=
