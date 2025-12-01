@@ -1,10 +1,9 @@
 package logmanager_test
 
 import (
-	"github.com/SALT-Indonesia/salt-pkg/logmanager"
-	"github.com/SALT-Indonesia/salt-pkg/logmanager/internal"
 	"testing"
 
+	"github.com/SALT-Indonesia/salt-pkg/logmanager"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -75,43 +74,6 @@ func TestWithTags(t *testing.T) {
 			}
 
 			assert.NotNil(t, app)
-		})
-	}
-}
-
-func TestWithMaskConfigs(t *testing.T) {
-	tests := []struct {
-		name               string
-		maskConfigs        logmanager.MaskConfigs
-		expectedMaskConfig int
-	}{
-		{"EmptyConfigs", logmanager.MaskConfigs{}, 0},
-		{
-			"SingleConfig",
-			logmanager.MaskConfigs{{Field: "password", Type: logmanager.PartialMask, ShowFirst: 2, ShowLast: 2}},
-			1,
-		},
-		{
-			"MultipleConfigs",
-			logmanager.MaskConfigs{
-				{Field: "creditCard", Type: logmanager.PartialMask, ShowFirst: 4, ShowLast: 4},
-				{Field: "password", Type: logmanager.PartialMask, ShowFirst: 2, ShowLast: 2},
-			},
-			2,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			app := logmanager.NewApplication()
-			option := logmanager.WithMaskConfigs(tt.maskConfigs)
-			option(app)
-
-			if tt.expectedMaskConfig == 0 {
-				assert.Equal(t, []internal.MaskingConfig{}, tt.maskConfigs.GetMaskConfigs())
-				return
-			}
-			assert.NotNil(t, tt.maskConfigs.GetMaskConfigs())
 		})
 	}
 }

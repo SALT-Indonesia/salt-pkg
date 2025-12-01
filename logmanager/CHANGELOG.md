@@ -12,6 +12,11 @@
   - Update `NewTxnWithEmailMasking` convenience function to use `EmailMask` type
   - Add 9 comprehensive unit tests covering various email masking scenarios
   - Works with field patterns, JSONPath expressions, and recursive patterns
+- **BREAKING CHANGE: Remove deprecated masking APIs**
+  - Remove `MaskConfig` type alias (use `MaskingConfig` instead)
+  - Remove `MaskConfigs` type (use `[]MaskingConfig` instead)
+  - Remove `GetMaskConfigs()` method (use `ConvertMaskingConfigs()` instead)
+  - Remove `WithMaskConfigs()` option (use `WithMaskingConfig()` instead)
 
 ## [1.37.0] - 2025-10-10
 - **Fix Gin middleware to propagate transaction to c.Request.Context() (#24)**

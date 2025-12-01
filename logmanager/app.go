@@ -19,9 +19,8 @@ type Application struct {
 	logDir            string
 	traceIDViaHeader  bool
 	traceIDContextKey ContextKey
-	traceIDHeaderKey  string
-	maskConfigs       MaskConfigs
-	maskingConfigs    []MaskingConfig
+	traceIDHeaderKey string
+	maskingConfigs   []MaskingConfig
 	tags              []string
 	exposeHeaders     []string
 	traceIDKey        string
@@ -113,24 +112,8 @@ func NewApplication(opts ...Option) *Application {
 		}
 	}
 
-	// Create a masker with a unified approach - convert all configs to a new format
-	legacyConfigs := app.maskConfigs.GetMaskConfigs()
-	allMaskingConfigs := make([]internal.MaskingConfig, 0, len(legacyConfigs)+len(app.maskingConfigs))
-
-	// Convert legacy configs to a new format
-	for _, legacyConfig := range legacyConfigs {
-		allMaskingConfigs = append(allMaskingConfigs, internal.MaskingConfig{
-			Field:     legacyConfig.Field, // Use Field for exact matching behavior
-			Type:      legacyConfig.Type,
-			ShowFirst: legacyConfig.ShowFirst,
-			ShowLast:  legacyConfig.ShowLast,
-		})
-	}
-
-	// Add new masking configs
-	allMaskingConfigs = append(allMaskingConfigs, ConvertMaskingConfigs(app.maskingConfigs)...)
-
-	masker := internal.NewJSONMasker(allMaskingConfigs)
+	// Create masker with masking configs
+	masker := internal.NewJSONMasker(ConvertMaskingConfigs(app.maskingConfigs))
 	app.logger = newStandardLogger(app.debug, app.logDir, masker)
 
 	return app

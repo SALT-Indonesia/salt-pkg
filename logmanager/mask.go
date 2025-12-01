@@ -36,31 +36,6 @@ type MaskingConfig struct {
 	ShowLast     int      // Number of characters to show from the end (for PartialMask)
 }
 
-// MaskConfig defines how a specific field should be masked
-// Deprecated: Use MaskingConfig instead
-type MaskConfig = MaskingConfig
-
-// MaskConfigs is a slice of MaskConfig
-// Deprecated: Use MaskingConfig with JSONPath instead
-type MaskConfigs []MaskConfig
-
-// GetMaskConfigs converts MaskConfigs to internal representation
-// Deprecated: Use MaskingConfig with JSONPath instead
-func (m MaskConfigs) GetMaskConfigs() []internal.MaskingConfig {
-	internalConfigs := make([]internal.MaskingConfig, len(m))
-
-	for i, config := range m {
-		internalConfigs[i] = internal.MaskingConfig{
-			Field:     config.Field,
-			Type:      config.Type, // No conversion needed anymore
-			ShowFirst: config.ShowFirst,
-			ShowLast:  config.ShowLast,
-		}
-	}
-
-	return internalConfigs
-}
-
 // ConvertMaskingConfigs converts MaskingConfig slice to internal representation
 func ConvertMaskingConfigs(configs []MaskingConfig) []internal.MaskingConfig {
 	internalConfigs := make([]internal.MaskingConfig, len(configs))
