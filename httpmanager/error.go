@@ -4,7 +4,8 @@ import (
 	"errors"
 )
 
-// CustomError is a custom error type that carries client-provided values for code, title, and desc
+// CustomError is a custom error type that carries client-provided values for code, title, and desc.
+//
 // Deprecated: Use ResponseError[T] instead for more flexible and type-safe error handling.
 // ResponseError allows complete customization of error response structure while preserving
 // original errors for server-side logging. See examples in internal/delivery/validation/.
@@ -21,7 +22,8 @@ func (e *CustomError) Error() string {
 	return e.Err.Error()
 }
 
-// IsCustomError checks if an error is a CustomError
+// IsCustomError checks if an error is a CustomError.
+//
 // Deprecated: Use ResponseError[T] instead for more flexible error handling.
 func IsCustomError(err error) (*CustomError, bool) {
 	var customErr *CustomError
