@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.16.2] - 2025-12-01
+
+### Changed
+- **Dependencies**: Upgrade logmanager module to v1.38.1
+  - Adds `EmailMask` type for proper email address masking (preserves domain, masks username)
+  - Fixes `StructMaskWithConfig` to apply JSONPath masking for non-struct types
+  - Removes deprecated masking APIs (`MaskConfig`, `MaskConfigs`, `GetMaskConfigs()`, `WithMaskConfigs()`)
+
 ## [0.16.1] - 2025-10-15
 
 ### Fixed
