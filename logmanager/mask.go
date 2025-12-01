@@ -89,10 +89,12 @@ func isStructOrStructPointer(data interface{}) bool {
 // StructMaskWithConfig applies masking to struct fields using both struct tags and additional configurations
 // This allows combining go-masker struct tags with logmanager's advanced masking configurations
 func StructMaskWithConfig(data interface{}, configs []MaskingConfig) (interface{}, error) {
-	// First apply struct tag masking using go-masker
+	// First apply struct tag masking using go-masker (only for structs)
 	maskedData, err := StructMask(data)
 	if err != nil {
-		return data, err
+		// If struct masking fails (e.g., input is a map), use original data
+		// but still apply JSONPath/FieldPattern masking below
+		maskedData = data
 	}
 
 	// Then apply additional field/JSONPath configurations using logmanager's masking
