@@ -7,6 +7,7 @@
 - **Type-safe request handling** with Go generics
 - **Automatic query parameter binding** with struct tags (similar to Gin's `ShouldBindQuery`)
 - **Path parameter support** with dynamic URL routing
+- **Built-in health check endpoint** enabled by default at `/health`
 - **Built-in CORS middleware** with configurable settings
 - **File upload handling** with multipart form support
 - **Static file serving** with automatic content type detection
@@ -208,6 +209,95 @@ server := httpmanager.NewServer(
 | `WithCertData`     | Sets SSL certificate as string data | `""`                                                    |
 | `WithKeyData`      | Sets SSL key as string data         | `""`                                                    |
 | `WithCORS`         | Enables CORS with custom settings   | `disabled`                                              |
+
+## Health Check Endpoint
+
+The module includes a built-in health check endpoint that is **enabled by default**. This endpoint is useful for container orchestration systems like Kubernetes, load balancers, and monitoring tools to verify that your service is running.
+
+### Default Behavior
+
+By default, the health check endpoint is available at `GET /health` and returns:
+
+```json
+{"status":"ok"}
+```
+
+With HTTP status code `200 OK` and `Content-Type: application/json` header.
+
+```go
+// Health check is automatically enabled at /health
+server := httpmanager.NewServer(logmanager.NewApplication())
+```
+
+### Custom Health Check Path
+
+You can customize the health check endpoint path:
+
+```go
+// Custom health check path
+server := httpmanager.NewServer(
+    logmanager.NewApplication(),
+    httpmanager.WithHealthCheckPath("/api/health"),
+)
+```
+
+### Disabling Health Check
+
+If you don't need the built-in health check (e.g., you want to implement your own), you can disable it:
+
+```go
+// Disable health check endpoint
+server := httpmanager.NewServer(
+    logmanager.NewApplication(),
+    httpmanager.WithoutHealthCheck(),
+)
+```
+
+### Health Check Options
+
+| Option                    | Description                                    | Default     |
+|---------------------------|------------------------------------------------|-------------|
+| `WithHealthCheck()`       | Explicitly enables health check                | `enabled`   |
+| `WithHealthCheckPath()`   | Sets custom path and enables health check      | `/health`   |
+| `WithoutHealthCheck()`    | Disables the health check endpoint             | -           |
+
+### HTTP Method Restrictions
+
+The health check endpoint only accepts `GET` requests. Other HTTP methods will receive a `405 Method Not Allowed` response.
+
+### Example Usage
+
+```go
+package main
+
+import (
+    "log"
+    "github.com/yourusername/httpmanager"
+    "github.com/yourusername/logmanager"
+)
+
+func main() {
+    // Create server with custom health check path
+    server := httpmanager.NewServer(
+        logmanager.NewApplication(),
+        httpmanager.WithHealthCheckPath("/api/v1/health"),
+        httpmanager.WithAddr(":8080"),
+    )
+
+    // Register your application handlers
+    // server.Handle("/users", userHandler)
+
+    log.Println("Health check available at: http://localhost:8080/api/v1/health")
+    log.Panic(server.Start())
+}
+```
+
+**Testing the health check:**
+
+```bash
+curl http://localhost:8080/health
+# Response: {"status":"ok"}
+```
 
 ## Request Handling
 
