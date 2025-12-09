@@ -1025,6 +1025,79 @@ func createUserHandler(ctx context.Context, req *CreateUserRequest) (*CreateUser
 }
 ```
 
+## Environment Configuration
+
+The httpmanager module integrates with logmanager's environment-based configuration. The `APP_ENV` environment variable controls debug mode and logging behavior.
+
+### APP_ENV Environment Variable
+
+| APP_ENV Value | Debug Mode | 404 Debug Logging | Description                    |
+|---------------|------------|-------------------|--------------------------------|
+| `production`  | Disabled   | Disabled          | Production environment         |
+| `development` | Enabled    | Enabled           | Development environment        |
+| `staging`     | Enabled    | Enabled           | Staging environment            |
+| (not set)     | Enabled    | Enabled           | Defaults to development        |
+
+### Debug Mode Features
+
+When debug mode is enabled (non-production environment):
+- **404 Debug Logging**: All 404 Not Found responses are logged with method, path, and query parameters
+- **Verbose Logging**: Additional debug information is available via `logmanager.DebugWithContext`
+
+### Configuration Examples
+
+**Production environment (debug disabled):**
+```bash
+export APP_ENV=production
+./myapp
+```
+
+**Development environment (debug enabled):**
+```bash
+export APP_ENV=development
+./myapp
+```
+
+**Explicit debug mode override:**
+```go
+// Force debug mode even in production
+app := logmanager.NewApplication(
+    logmanager.WithEnvironment("production"),
+    logmanager.WithDebug(), // Explicitly enable debug
+)
+server := httpmanager.NewServer(app)
+```
+
+### 404 Debug Logging
+
+When debug mode is enabled, all 404 responses are automatically logged:
+
+```json
+{
+  "level": "debug",
+  "type": "http",
+  "method": "GET",
+  "path": "/non-existent-path",
+  "query": "foo=bar",
+  "trace_id": "abc-123-def",
+  "msg": "404 Not Found",
+  "time": "2025-12-09T10:00:00+07:00"
+}
+```
+
+This is useful for:
+- Identifying misconfigured client URLs
+- Debugging missing routes during development
+- Tracking 404 patterns for API versioning decisions
+
+### Non-Production Warning
+
+When the server starts in a non-production environment, a warning message is displayed:
+
+```
+[WARNING] Server is running in 'development' environment. Set APP_ENV=production for production deployments.
+```
+
 ## SSL Support
 
 To enable HTTPS with SSL:

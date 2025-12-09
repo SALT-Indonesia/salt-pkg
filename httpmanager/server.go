@@ -154,6 +154,13 @@ func (s *Server) Start() error {
 	if !s.hasSetUpCORS {
 		return fmt.Errorf("CORS middleware is not set")
 	}
+
+	// Warn if not running in production environment
+	env := s.app.Environment()
+	if env != "production" {
+		fmt.Printf("[WARNING] Server is running in '%s' environment. Set APP_ENV=production for production deployments.\n", env)
+	}
+
 	fmt.Println("starting server on: ", s.server.Addr)
 	return s.server.ListenAndServe()
 }

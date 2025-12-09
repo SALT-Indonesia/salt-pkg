@@ -9,6 +9,10 @@
   - Integrated with logmanager middleware for trace ID propagation
   - Helpful for debugging missing routes and incorrect URL configurations
   - Closes #40
+- **Non-Production Environment Warning**: Added startup warning when APP_ENV is not set to production
+  - Server displays a warning message on startup when running in non-production environments
+  - Helps developers identify when they're running in debug mode
+  - Message format: `[WARNING] Server is running in '<env>' environment. Set APP_ENV=production for production deployments.`
 
 ### Changed
 - **Dependencies**: Added `Debug()` method to logmanager.Application to expose debug mode status
