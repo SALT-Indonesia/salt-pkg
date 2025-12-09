@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.16.3] - 2025-12-09
+
+### Added
+- **Debug Logging for 404 Responses**: Added custom NotFoundHandler that logs 404 responses in debug mode
+  - When debug mode is enabled, the server now logs debug messages for all 404 Not Found responses
+  - Log message includes HTTP method, request path, and query parameters
+  - Integrated with logmanager middleware for trace ID propagation
+  - Helpful for debugging missing routes and incorrect URL configurations
+  - Closes #40
+
+### Changed
+- **Dependencies**: Added `Debug()` method to logmanager.Application to expose debug mode status
+  - New public method `Debug() bool` returns whether debug mode is enabled
+  - Required for httpmanager to conditionally log 404 responses
+
 ## [0.16.2] - 2025-12-01
 
 ### Changed

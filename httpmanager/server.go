@@ -34,6 +34,9 @@ func NewServer(app *logmanager.Application, opts ...OptionFunc) *Server {
 	// Add default middlewares
 	s.middlewares = append(s.middlewares, lmgorilla.Middleware(s.app))
 
+	// Register custom NotFoundHandler with debug logging
+	s.registerNotFoundHandler()
+
 	// Register health check endpoint if enabled
 	if s.healthCheckEnabled {
 		s.registerHealthCheck()
@@ -169,4 +172,29 @@ func (s *Server) registerHealthCheck() {
 	})
 
 	s.router.Handle(s.healthCheckPath, healthHandler).Methods("GET")
+}
+
+// registerNotFoundHandler registers a custom NotFoundHandler that logs 404 responses
+// in debug mode using logmanager.
+func (s *Server) registerNotFoundHandler() {
+	notFoundHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Log 404 in debug mode
+		if s.app != nil && s.app.Debug() {
+			logmanager.DebugWithContext(r.Context(), "404 Not Found", map[string]string{
+				"method": r.Method,
+				"path":   r.URL.Path,
+				"query":  r.URL.RawQuery,
+			})
+		}
+
+		http.NotFound(w, r)
+	})
+
+	// Apply middlewares to the NotFoundHandler so it gets trace ID and logging
+	var handler http.Handler = notFoundHandler
+	for i := len(s.middlewares) - 1; i >= 0; i-- {
+		handler = s.middlewares[i](handler)
+	}
+
+	s.router.NotFoundHandler = handler
 }
