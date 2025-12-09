@@ -181,6 +181,7 @@ func (s *Server) registerNotFoundHandler() {
 		// Log 404 in debug mode
 		if s.app != nil && s.app.Debug() {
 			logmanager.DebugWithContext(r.Context(), "404 Not Found", map[string]string{
+				"type":   "http",
 				"method": r.Method,
 				"path":   r.URL.Path,
 				"query":  r.URL.RawQuery,
