@@ -340,3 +340,66 @@ func TestServer_Stop(t *testing.T) {
 	err := server.Stop(ctx)
 	assert.NoError(t, err)
 }
+
+func TestServer_NotFoundHandler(t *testing.T) {
+	t.Run("returns 404 for non-existent route", func(t *testing.T) {
+		server := NewServer(testdata.NewApplication())
+
+		req := httptest.NewRequest(http.MethodGet, "/non-existent-path", nil)
+		rr := httptest.NewRecorder()
+
+		server.router.ServeHTTP(rr, req)
+
+		assert.Equal(t, http.StatusNotFound, rr.Code)
+	})
+
+	t.Run("returns 404 with debug logging enabled", func(t *testing.T) {
+		// Create application with debug mode enabled (default in non-production)
+		server := NewServer(testdata.NewApplication())
+
+		req := httptest.NewRequest(http.MethodGet, "/non-existent-path?foo=bar", nil)
+		rr := httptest.NewRecorder()
+
+		server.router.ServeHTTP(rr, req)
+
+		assert.Equal(t, http.StatusNotFound, rr.Code)
+		// The response should contain the standard 404 page
+		assert.Contains(t, rr.Body.String(), "404 page not found")
+	})
+
+	t.Run("returns 404 for different HTTP methods", func(t *testing.T) {
+		server := NewServer(testdata.NewApplication())
+
+		methods := []string{
+			http.MethodGet,
+			http.MethodPost,
+			http.MethodPut,
+			http.MethodDelete,
+			http.MethodPatch,
+		}
+
+		for _, method := range methods {
+			t.Run(method, func(t *testing.T) {
+				req := httptest.NewRequest(method, "/non-existent-path", nil)
+				rr := httptest.NewRecorder()
+
+				server.router.ServeHTTP(rr, req)
+
+				assert.Equal(t, http.StatusNotFound, rr.Code)
+			})
+		}
+	})
+
+	t.Run("NotFoundHandler includes trace ID header", func(t *testing.T) {
+		server := NewServer(testdata.NewApplication())
+
+		req := httptest.NewRequest(http.MethodGet, "/non-existent-path", nil)
+		rr := httptest.NewRecorder()
+
+		server.router.ServeHTTP(rr, req)
+
+		assert.Equal(t, http.StatusNotFound, rr.Code)
+		// The middleware should set the trace ID header
+		assert.NotEmpty(t, rr.Header().Get("X-Trace-Id"))
+	})
+}

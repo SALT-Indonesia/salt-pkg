@@ -36,6 +36,15 @@ func (app *Application) Environment() string {
 	return app.environment
 }
 
+// Debug returns true if debug mode is enabled for the Application instance.
+// If the Application receiver is nil, it returns false.
+func (app *Application) Debug() bool {
+	if nil == app {
+		return false
+	}
+	return app.debug
+}
+
 // TraceIDKey returns the trace ID key used within the Application instance.
 func (app *Application) TraceIDKey() string {
 	return app.traceIDKey

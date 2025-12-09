@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [1.38.2] - 2025-12-09
+- **Add Debug() method to Application (#40)**
+  - New public method `Debug() bool` returns whether debug mode is enabled for the application
+  - Returns `false` if called on a nil Application pointer
+  - Required by httpmanager for conditional 404 debug logging
+
 ## [1.38.1] - 2025-12-01
 - **Fix StructMaskWithConfig to apply JSONPath masking for non-struct types**
   - Previously, masking would skip JSONPath/FieldPattern configs when input was a map

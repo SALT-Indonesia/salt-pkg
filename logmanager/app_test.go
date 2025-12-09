@@ -203,6 +203,28 @@ func TestNewApplication(t *testing.T) {
 	}
 }
 
+func TestDebug(t *testing.T) {
+	t.Run("Nil application returns false", func(t *testing.T) {
+		var app *logmanager.Application
+		assert.False(t, app.Debug())
+	})
+
+	t.Run("Application with debug mode disabled", func(t *testing.T) {
+		app := logmanager.NewApplication(logmanager.WithEnvironment("production"))
+		assert.False(t, app.Debug())
+	})
+
+	t.Run("Application with debug mode enabled", func(t *testing.T) {
+		app := logmanager.NewApplication(logmanager.WithDebug())
+		assert.True(t, app.Debug())
+	})
+
+	t.Run("Application with debug mode enabled via non-production environment", func(t *testing.T) {
+		app := logmanager.NewApplication(logmanager.WithEnvironment("development"))
+		assert.True(t, app.Debug())
+	})
+}
+
 func TestStartHttp(t *testing.T) {
 	tests := []struct {
 		name           string

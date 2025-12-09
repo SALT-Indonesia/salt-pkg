@@ -16,9 +16,17 @@ import (
 )
 
 func main() {
+	// Create application with debug mode enabled
+	// Debug mode enables 404 logging which helps identify missing routes
+	app := logmanager.NewApplication(
+		logmanager.WithDebug(),
+		logmanager.WithAppName("httpmanager-example"),
+	)
+
 	// Create a server with CORS middleware enabled
 	// Health check is enabled by default at GET /health
-	server := httpmanager.NewServer(logmanager.NewApplication())
+	// When debug mode is enabled, 404 responses will be logged
+	server := httpmanager.NewServer(app)
 	server.EnableCORS(
 		[]string{"http://localhost:3000", "https://example.com"}, // allowed origins
 		[]string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},      // allowed methods
@@ -84,6 +92,12 @@ func main() {
 	log.Println("  Validation error (400): {\"order_id\":\"\",\"customer_id\":\"CUST456\",\"amount\":100.50,\"payment_type\":\"credit_card\"}")
 	log.Println("  Business error (422): {\"order_id\":\"ORD123\",\"customer_id\":\"blocked_customer\",\"amount\":100.50,\"payment_type\":\"credit_card\"}")
 	log.Println("  System error (500): {\"order_id\":\"ORD_db_error\",\"customer_id\":\"CUST456\",\"amount\":100.50,\"payment_type\":\"credit_card\"}")
+	log.Println("")
+	log.Println("404 Debug Logging examples (debug mode enabled):")
+	log.Println("GET http://localhost:8080/non-existent-path")
+	log.Println("GET http://localhost:8080/api/unknown?foo=bar")
+	log.Println("POST http://localhost:8080/missing-endpoint")
+	log.Println("  -> These will return 404 and log debug messages with method, path, and query params")
 
 	log.Panic(server.Start())
 }
