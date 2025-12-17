@@ -299,3 +299,91 @@ jobs:
         version: latest
         working-directory: eventmanager
         args: --config .golangci.yml
+
+  vulncheck-clientmanager:
+    name: Vulnerability Check Client Manager
+    needs: changes
+    if: needs.changes.outputs.clientmanager == 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.23'
+
+    - name: Install govulncheck
+      run: go install golang.org/x/vuln/cmd/govulncheck@latest
+
+    - name: Run govulncheck
+      run: govulncheck ./...
+      working-directory: clientmanager
+
+  vulncheck-httpmanager:
+    name: Vulnerability Check HTTP Manager
+    needs: changes
+    if: needs.changes.outputs.httpmanager == 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.23'
+
+    - name: Install govulncheck
+      run: go install golang.org/x/vuln/cmd/govulncheck@latest
+
+    - name: Run govulncheck
+      run: govulncheck ./...
+      working-directory: httpmanager
+
+  vulncheck-logmanager:
+    name: Vulnerability Check Log Manager
+    needs: changes
+    if: needs.changes.outputs.logmanager == 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.23'
+
+    - name: Install govulncheck
+      run: go install golang.org/x/vuln/cmd/govulncheck@latest
+
+    - name: Run govulncheck
+      run: govulncheck ./...
+      working-directory: logmanager
+
+  vulncheck-eventmanager:
+    name: Vulnerability Check Event Manager
+    needs: changes
+    if: needs.changes.outputs.eventmanager == 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.23'
+
+    - name: Install govulncheck
+      run: go install golang.org/x/vuln/cmd/govulncheck@latest
+
+    - name: Run govulncheck
+      run: govulncheck ./...
+      working-directory: eventmanager
