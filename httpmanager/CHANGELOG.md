@@ -15,6 +15,15 @@
   - `GetFormValue(form, key)` - Returns first value for a form field key
   - `GetFormValues(form, key)` - Returns all values for a form field key (for multi-value fields)
 
+### Changed
+- **Documentation Restructure**: Split large README.md into modular documentation files
+  - Main README now contains overview, quick start, and core components
+  - Created `docs/CONFIGURATION.md` for server options, health check, environment, SSL
+  - Created `docs/PARAMETERS.md` for query/path parameters, headers, automatic binding
+  - Created `docs/UPLOADS.md` for file uploads and static file serving
+  - Created `docs/RESPONSES.md` for ResponseSuccess and ResponseError
+  - Created `docs/REDIRECTS.md` for HTTP redirect functionality
+
 ### Technical Details
 - Modified `upload.go` ServeHTTP method to check for `ResponseError` using `checkCustomErrorV2()` reflection helper
 - Error handling now mirrors the regular Handler implementation for consistency
