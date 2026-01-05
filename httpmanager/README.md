@@ -777,6 +777,23 @@ type UploadedFile struct {
 }
 ```
 
+### Form Value Helper Functions
+
+The module provides helper functions for accessing form values:
+
+```go
+// Get first value for a form field
+name := httpmanager.GetFormValue(form, "name")
+
+// Get all values for a form field (for multi-value fields)
+tags := httpmanager.GetFormValues(form, "tags")
+```
+
+| Function | Description |
+|----------|-------------|
+| `GetFormValue(form, key)` | Returns the first value for the key, or empty string if not found |
+| `GetFormValues(form, key)` | Returns all values for the key, or nil if not found |
+
 ### HTML Form Example
 
 Here's an example HTML form that works with the upload handler:
@@ -788,6 +805,142 @@ Here's an example HTML form that works with the upload handler:
     <input type="file" name="avatar">
     <button type="submit">Upload</button>
 </form>
+```
+
+### Error Handling with ResponseError
+
+The `UploadHandler` supports `ResponseError[T]` for custom error responses, allowing you to return structured JSON errors with appropriate HTTP status codes:
+
+```go
+// Define your error response format
+type ErrorResponse struct {
+    Code    string      `json:"code"`
+    Message string      `json:"message"`
+    Data    interface{} `json:"data,omitempty"`
+}
+
+// Create an upload handler with validation and custom error responses
+uploadHandler := httpmanager.NewUploadHandler(
+    http.MethodPost,
+    "./uploads",
+    func(ctx context.Context, files map[string][]*httpmanager.UploadedFile, form map[string][]string) (interface{}, error) {
+        // Validate required form fields
+        title := ""
+        if values, ok := form["title"]; ok && len(values) > 0 {
+            title = values[0]
+        }
+
+        if title == "" {
+            return nil, &httpmanager.ResponseError[ErrorResponse]{
+                Err:        fmt.Errorf("title is required"),
+                StatusCode: http.StatusBadRequest,
+                Body: ErrorResponse{
+                    Code:    "UPLOAD_VAL_001",
+                    Message: "Title field is required",
+                    Data:    nil,
+                },
+            }
+        }
+
+        // Validate that at least one file is uploaded
+        if len(files) == 0 {
+            return nil, &httpmanager.ResponseError[ErrorResponse]{
+                Err:        fmt.Errorf("no files uploaded"),
+                StatusCode: http.StatusBadRequest,
+                Body: ErrorResponse{
+                    Code:    "UPLOAD_VAL_002",
+                    Message: "At least one file must be uploaded",
+                    Data:    nil,
+                },
+            }
+        }
+
+        // Validate file types
+        allowedTypes := map[string]bool{
+            "image/jpeg": true,
+            "image/png":  true,
+            "application/pdf": true,
+        }
+
+        for _, uploadedFiles := range files {
+            for _, file := range uploadedFiles {
+                if !allowedTypes[file.ContentType] {
+                    return nil, &httpmanager.ResponseError[ErrorResponse]{
+                        Err:        fmt.Errorf("invalid file type: %s", file.ContentType),
+                        StatusCode: http.StatusBadRequest,
+                        Body: ErrorResponse{
+                            Code:    "UPLOAD_VAL_003",
+                            Message: fmt.Sprintf("File type '%s' is not allowed", file.ContentType),
+                            Data: map[string]interface{}{
+                                "filename":     file.Filename,
+                                "content_type": file.ContentType,
+                            },
+                        },
+                    }
+                }
+            }
+        }
+
+        // Return success response
+        return map[string]string{
+            "status":  "success",
+            "message": "Files uploaded successfully",
+        }, nil
+    },
+)
+
+server.Handle("/upload", uploadHandler)
+```
+
+### Upload Error Response Examples
+
+**Missing required field (400):**
+```bash
+curl -X POST http://localhost:8080/upload \
+  -F "file=@image.jpg" \
+  -F "description=test"
+```
+
+Response:
+```json
+{
+  "code": "UPLOAD_VAL_001",
+  "message": "Title field is required"
+}
+```
+
+**No file uploaded (400):**
+```bash
+curl -X POST http://localhost:8080/upload \
+  -F "title=My Document" \
+  -F "description=test"
+```
+
+Response:
+```json
+{
+  "code": "UPLOAD_VAL_002",
+  "message": "At least one file must be uploaded"
+}
+```
+
+**Invalid file type (400):**
+```bash
+curl -X POST http://localhost:8080/upload \
+  -F "file=@script.exe" \
+  -F "title=Test"
+```
+
+Response:
+```json
+{
+  "code": "UPLOAD_VAL_003",
+  "message": "File type 'application/octet-stream' is not allowed",
+  "data": {
+    "filename": "script.exe",
+    "content_type": "application/octet-stream"
+  }
+}
 ```
 
 ## Static File Serving

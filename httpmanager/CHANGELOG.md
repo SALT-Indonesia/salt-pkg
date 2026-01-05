@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.16.4] - 2026-01-05
+
+### Added
+- **ResponseError Support for UploadHandler**: Added `ResponseError[T]` support to `UploadHandler` for custom error responses
+  - UploadHandler now supports the same custom error response pattern as regular Handler
+  - Allows returning structured JSON errors with custom HTTP status codes for file upload validation
+  - Supports both `ResponseError[T]` (recommended) and deprecated `CustomError` for backward compatibility
+  - Added new examples:
+    - `examples/httpmanager/internal/delivery/upload_validation/` - File upload with validation
+    - `examples/httpmanager/internal/delivery/form_data/` - Form data only (no file upload)
+  - Updated README with comprehensive documentation and curl examples
+- **Form Value Helper Functions**: Added public helper functions for accessing form values
+  - `GetFormValue(form, key)` - Returns first value for a form field key
+  - `GetFormValues(form, key)` - Returns all values for a form field key (for multi-value fields)
+
+### Technical Details
+- Modified `upload.go` ServeHTTP method to check for `ResponseError` using `checkCustomErrorV2()` reflection helper
+- Error handling now mirrors the regular Handler implementation for consistency
+- Custom error responses are properly serialized to JSON with correct Content-Type headers
+
 ## [0.16.3] - 2025-12-09
 
 ### Added
