@@ -5,13 +5,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/gorilla/mux"
 	"io"
 	"mime/multipart"
 	"net/http"
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/gorilla/mux"
 )
 
 // UploadedFile represents a file that has been uploaded
@@ -109,6 +110,29 @@ func (h *UploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Call the handler function
 	resp, err := h.handlerFunc(ctx, files, formValues)
 	if err != nil {
+		// Check if the error is a ResponseError to use client-provided values
+		if isCustomV2, statusCode, body := checkCustomErrorV2(err); isCustomV2 {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(statusCode)
+			encoder := json.NewEncoder(w)
+			_ = encoder.Encode(body)
+			return
+		}
+
+		// Check if the error is a CustomError (deprecated) to use client-provided values
+		if detailedErr, ok := IsCustomError(err); ok {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(detailedErr.StatusCode)
+			encoder := json.NewEncoder(w)
+			_ = encoder.Encode(map[string]interface{}{
+				"code":  detailedErr.Code,
+				"title": detailedErr.Title,
+				"desc":  detailedErr.Desc,
+			})
+			return
+		}
+
+		// Default error response
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -158,6 +182,24 @@ func (h *UploadHandler) processUploadedFiles(r *http.Request) (map[string][]*Upl
 	}
 
 	return result, nil
+}
+
+// GetFormValue retrieves the first value for a form field key.
+// Returns empty string if the key doesn't exist or has no values.
+func GetFormValue(form map[string][]string, key string) string {
+	if values, ok := form[key]; ok && len(values) > 0 {
+		return values[0]
+	}
+	return ""
+}
+
+// GetFormValues retrieves all values for a form field key.
+// Returns nil if the key doesn't exist.
+func GetFormValues(form map[string][]string, key string) []string {
+	if values, ok := form[key]; ok {
+		return values
+	}
+	return nil
 }
 
 // saveFile saves an uploaded file to disk and returns metadata about the saved file

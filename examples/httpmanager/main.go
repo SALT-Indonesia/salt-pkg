@@ -2,11 +2,13 @@ package main
 
 import (
 	"examples/httpmanager/internal/application"
+	"examples/httpmanager/internal/delivery/form_data"
 	"examples/httpmanager/internal/delivery/home"
 	"examples/httpmanager/internal/delivery/product"
 	"examples/httpmanager/internal/delivery/profile"
 	"examples/httpmanager/internal/delivery/register"
 	"examples/httpmanager/internal/delivery/upload"
+	"examples/httpmanager/internal/delivery/upload_validation"
 	"examples/httpmanager/internal/delivery/user"
 	"examples/httpmanager/internal/delivery/validation"
 	"log"
@@ -47,6 +49,8 @@ func main() {
 	server.Handle("/me", profile.NewHandler(application.NewProfileUseCaseImpl()))
 	server.Handle("/register", register.NewHandler(application.NewUseCaseImpl()))
 	server.Handle("/upload", upload.NewHandler())
+	server.Handle("/upload-validation", upload_validation.NewHandler())
+	server.Handle("/contact", form_data.NewHandler())
 	server.Handle("/product", product.NewHandler())
 	server.Handle("/validation/create-user", validation.NewHandler())
 
@@ -85,6 +89,17 @@ func main() {
 	log.Println("  Valid: {\"name\":\"John\",\"email\":\"john@example.com\",\"age\":25}")
 	log.Println("  400 error: {\"name\":\"\",\"email\":\"john@example.com\",\"age\":25}")
 	log.Println("  500 error: {\"name\":\"database_error\",\"email\":\"test@example.com\",\"age\":25}")
+	log.Println("")
+	log.Println("Upload with form data and ResponseError examples:")
+	log.Println("POST http://localhost:8080/upload-validation")
+	log.Println("  Valid: curl -X POST http://localhost:8080/upload-validation -F \"file=@image.jpg\" -F \"title=My Doc\"")
+	log.Println("  Missing title (400): curl -X POST http://localhost:8080/upload-validation -F \"file=@image.jpg\"")
+	log.Println("  No file (400): curl -X POST http://localhost:8080/upload-validation -F \"title=Test\"")
+	log.Println("")
+	log.Println("Form data only (no file upload) examples:")
+	log.Println("POST http://localhost:8080/contact")
+	log.Println("  Valid: curl -X POST http://localhost:8080/contact -F \"name=John\"")
+	log.Println("  Missing name (400): curl -X POST http://localhost:8080/contact")
 	log.Println("")
 	log.Println("CustomErrorV2 examples:")
 	log.Println("POST http://localhost:8080/customv2/process-order")

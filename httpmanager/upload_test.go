@@ -558,6 +558,228 @@ func TestUploadHandler_saveFile_Errors(t *testing.T) {
 	})
 }
 
+func TestGetFormValue(t *testing.T) {
+	t.Run("existing key with single value", func(t *testing.T) {
+		form := map[string][]string{
+			"name": {"John"},
+		}
+
+		result := GetFormValue(form, "name")
+
+		if result != "John" {
+			t.Errorf("Expected 'John', got '%s'", result)
+		}
+	})
+
+	t.Run("existing key with multiple values returns first", func(t *testing.T) {
+		form := map[string][]string{
+			"tags": {"go", "web", "api"},
+		}
+
+		result := GetFormValue(form, "tags")
+
+		if result != "go" {
+			t.Errorf("Expected 'go', got '%s'", result)
+		}
+	})
+
+	t.Run("non-existing key returns empty string", func(t *testing.T) {
+		form := map[string][]string{
+			"name": {"John"},
+		}
+
+		result := GetFormValue(form, "email")
+
+		if result != "" {
+			t.Errorf("Expected empty string, got '%s'", result)
+		}
+	})
+
+	t.Run("existing key with empty values returns empty string", func(t *testing.T) {
+		form := map[string][]string{
+			"name": {},
+		}
+
+		result := GetFormValue(form, "name")
+
+		if result != "" {
+			t.Errorf("Expected empty string, got '%s'", result)
+		}
+	})
+
+	t.Run("nil form returns empty string", func(t *testing.T) {
+		var form map[string][]string
+
+		result := GetFormValue(form, "name")
+
+		if result != "" {
+			t.Errorf("Expected empty string, got '%s'", result)
+		}
+	})
+
+	t.Run("empty form returns empty string", func(t *testing.T) {
+		form := map[string][]string{}
+
+		result := GetFormValue(form, "name")
+
+		if result != "" {
+			t.Errorf("Expected empty string, got '%s'", result)
+		}
+	})
+}
+
+func TestGetFormValues(t *testing.T) {
+	t.Run("existing key with single value", func(t *testing.T) {
+		form := map[string][]string{
+			"name": {"John"},
+		}
+
+		result := GetFormValues(form, "name")
+
+		if len(result) != 1 || result[0] != "John" {
+			t.Errorf("Expected ['John'], got %v", result)
+		}
+	})
+
+	t.Run("existing key with multiple values", func(t *testing.T) {
+		form := map[string][]string{
+			"tags": {"go", "web", "api"},
+		}
+
+		result := GetFormValues(form, "tags")
+
+		if len(result) != 3 {
+			t.Errorf("Expected 3 values, got %d", len(result))
+		}
+		if result[0] != "go" || result[1] != "web" || result[2] != "api" {
+			t.Errorf("Expected ['go', 'web', 'api'], got %v", result)
+		}
+	})
+
+	t.Run("non-existing key returns nil", func(t *testing.T) {
+		form := map[string][]string{
+			"name": {"John"},
+		}
+
+		result := GetFormValues(form, "email")
+
+		if result != nil {
+			t.Errorf("Expected nil, got %v", result)
+		}
+	})
+
+	t.Run("existing key with empty values returns empty slice", func(t *testing.T) {
+		form := map[string][]string{
+			"name": {},
+		}
+
+		result := GetFormValues(form, "name")
+
+		if result == nil {
+			t.Error("Expected empty slice, got nil")
+		}
+		if len(result) != 0 {
+			t.Errorf("Expected empty slice, got %v", result)
+		}
+	})
+
+	t.Run("nil form returns nil", func(t *testing.T) {
+		var form map[string][]string
+
+		result := GetFormValues(form, "name")
+
+		if result != nil {
+			t.Errorf("Expected nil, got %v", result)
+		}
+	})
+
+	t.Run("empty form returns nil", func(t *testing.T) {
+		form := map[string][]string{}
+
+		result := GetFormValues(form, "name")
+
+		if result != nil {
+			t.Errorf("Expected nil, got %v", result)
+		}
+	})
+}
+
+func TestUploadHandler_ServeHTTP_ResponseError(t *testing.T) {
+	tempDir := t.TempDir()
+
+	t.Run("returns custom error response", func(t *testing.T) {
+		handler := NewUploadHandler("POST", tempDir, func(ctx context.Context, files map[string][]*UploadedFile, form map[string][]string) (interface{}, error) {
+			return nil, &ResponseError[map[string]string]{
+				Err:        errors.New("validation error"),
+				StatusCode: http.StatusBadRequest,
+				Body: map[string]string{
+					"code":    "VAL_001",
+					"message": "Name is required",
+				},
+			}
+		})
+
+		// Create a multipart form
+		var b bytes.Buffer
+		writer := multipart.NewWriter(&b)
+		writer.Close()
+
+		req := httptest.NewRequest("POST", "/upload", &b)
+		req.Header.Set("Content-Type", writer.FormDataContentType())
+		rr := httptest.NewRecorder()
+
+		handler.ServeHTTP(rr, req)
+
+		if status := rr.Code; status != http.StatusBadRequest {
+			t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, status)
+		}
+
+		contentType := rr.Header().Get("Content-Type")
+		if contentType != "application/json" {
+			t.Errorf("Expected Content-Type %s, got %s", "application/json", contentType)
+		}
+
+		var response map[string]string
+		if err := json.Unmarshal(rr.Body.Bytes(), &response); err != nil {
+			t.Fatalf("Failed to unmarshal response: %v", err)
+		}
+
+		if response["code"] != "VAL_001" {
+			t.Errorf("Expected code 'VAL_001', got '%s'", response["code"])
+		}
+		if response["message"] != "Name is required" {
+			t.Errorf("Expected message 'Name is required', got '%s'", response["message"])
+		}
+	})
+
+	t.Run("returns 500 error response", func(t *testing.T) {
+		handler := NewUploadHandler("POST", tempDir, func(ctx context.Context, files map[string][]*UploadedFile, form map[string][]string) (interface{}, error) {
+			return nil, &ResponseError[map[string]string]{
+				Err:        errors.New("database error"),
+				StatusCode: http.StatusInternalServerError,
+				Body: map[string]string{
+					"code":    "SYS_001",
+					"message": "Internal server error",
+				},
+			}
+		})
+
+		var b bytes.Buffer
+		writer := multipart.NewWriter(&b)
+		writer.Close()
+
+		req := httptest.NewRequest("POST", "/upload", &b)
+		req.Header.Set("Content-Type", writer.FormDataContentType())
+		rr := httptest.NewRecorder()
+
+		handler.ServeHTTP(rr, req)
+
+		if status := rr.Code; status != http.StatusInternalServerError {
+			t.Errorf("Expected status code %d, got %d", http.StatusInternalServerError, status)
+		}
+	})
+}
+
 // TestMain is used to set up and tear down the test environment
 func TestMain(m *testing.M) {
 	// Run tests

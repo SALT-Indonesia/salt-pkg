@@ -66,7 +66,7 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
-        go-version: '1.23'
+        go-version: '1.24'
 
     - name: Cache Go modules
       uses: actions/cache@v4
@@ -101,7 +101,7 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
-        go-version: '1.23'
+        go-version: '1.24'
 
     - name: Download vendor directory
       uses: actions/download-artifact@v4
@@ -132,7 +132,7 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
-        go-version: '1.23'
+        go-version: '1.24'
 
     - name: Download vendor directory
       uses: actions/download-artifact@v4
@@ -163,7 +163,7 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
-        go-version: '1.23'
+        go-version: '1.24'
 
     - name: Download vendor directory
       uses: actions/download-artifact@v4
@@ -194,7 +194,7 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
-        go-version: '1.23'
+        go-version: '1.24'
 
     - name: Download vendor directory
       uses: actions/download-artifact@v4
@@ -225,7 +225,7 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
-        go-version: '1.23'
+        go-version: '1.24'
 
     - name: Run golangci-lint
       uses: golangci/golangci-lint-action@v8
@@ -247,7 +247,7 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
-        go-version: '1.23'
+        go-version: '1.24'
 
     - name: Run golangci-lint
       uses: golangci/golangci-lint-action@v8
@@ -269,7 +269,7 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
-        go-version: '1.23'
+        go-version: '1.24'
 
     - name: Run golangci-lint
       uses: golangci/golangci-lint-action@v8
@@ -291,7 +291,7 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
-        go-version: '1.23'
+        go-version: '1.24'
 
     - name: Run golangci-lint
       uses: golangci/golangci-lint-action@v8
@@ -313,7 +313,7 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
-        go-version: '1.23'
+        go-version: '1.24'
 
     - name: Install govulncheck
       run: go install golang.org/x/vuln/cmd/govulncheck@latest
@@ -335,7 +335,7 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
-        go-version: '1.23'
+        go-version: '1.24'
 
     - name: Install govulncheck
       run: go install golang.org/x/vuln/cmd/govulncheck@latest
@@ -357,7 +357,7 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
-        go-version: '1.23'
+        go-version: '1.24'
 
     - name: Install govulncheck
       run: go install golang.org/x/vuln/cmd/govulncheck@latest
@@ -379,7 +379,7 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
-        go-version: '1.23'
+        go-version: '1.24'
 
     - name: Install govulncheck
       run: go install golang.org/x/vuln/cmd/govulncheck@latest
