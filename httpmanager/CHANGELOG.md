@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.16.5] - 2026-01-08
+
+### Fixed
+- **Path Parameters Support for UploadHandler**: Fixed missing path parameter extraction in `UploadHandler`
+  - `UploadHandler` now extracts path parameters and adds them to the context, matching the behavior of regular `Handler`
+  - Previously, calling `GetPathParams(ctx)` inside an `UploadHandler` callback would return empty values
+  - Now supports routes like `POST /user/{id}/avatar` with form data and file uploads
+  - Added example handler `NewUserAvatarUploadHandler()` demonstrating form data upload with path parameters
+  - Added unit test for path parameters in `UploadHandler` using testify
+
+### Examples
+- Form data with path parameters:
+  ```bash
+  curl -X POST http://localhost:8080/user/123/avatar -F "name=John" -F "avatar=@photo.jpg"
+  ```
+
 ## [0.16.4] - 2026-01-05
 
 ### Added

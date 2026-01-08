@@ -92,7 +92,12 @@ func (h *UploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Extract path parameters from the request URL
+	pathParams := extractPathParams(r)
+
+	// Add path parameters to the context
 	ctx := r.Context()
+	ctx = context.WithValue(ctx, pathParamsKey, pathParams)
 
 	// Process uploaded files
 	files, err := h.processUploadedFiles(r)

@@ -13,6 +13,9 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/gorilla/mux"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNewUploadHandler(t *testing.T) {
@@ -778,6 +781,49 @@ func TestUploadHandler_ServeHTTP_ResponseError(t *testing.T) {
 			t.Errorf("Expected status code %d, got %d", http.StatusInternalServerError, status)
 		}
 	})
+}
+
+func TestUploadHandler_PathParams(t *testing.T) {
+	tempDir := t.TempDir()
+
+	var capturedUserID string
+	var capturedSection string
+
+	handler := NewUploadHandler("POST", tempDir, func(ctx context.Context, files map[string][]*UploadedFile, form map[string][]string) (interface{}, error) {
+		pathParams := GetPathParams(ctx)
+		capturedUserID = pathParams.Get("id")
+		capturedSection = pathParams.Get("section")
+
+		return map[string]string{
+			"user_id": capturedUserID,
+			"section": capturedSection,
+			"status":  "success",
+		}, nil
+	})
+
+	// Create a mux router and register the handler with path params
+	router := mux.NewRouter()
+	router.Handle("/users/{id}/upload/{section}", handler).Methods("POST")
+
+	// Create a multipart form
+	var b bytes.Buffer
+	writer := multipart.NewWriter(&b)
+	_ = writer.WriteField("name", "test")
+	writer.Close()
+
+	// Create a test request with path params
+	req := httptest.NewRequest("POST", "/users/123/upload/avatar", &b)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	rr := httptest.NewRecorder()
+
+	// Serve the request through mux router
+	router.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+	assert.Equal(t, "123", capturedUserID)
+	assert.Equal(t, "avatar", capturedSection)
+	assert.Contains(t, rr.Body.String(), `"user_id":"123"`)
+	assert.Contains(t, rr.Body.String(), `"section":"avatar"`)
 }
 
 // TestMain is used to set up and tear down the test environment
