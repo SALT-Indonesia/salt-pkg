@@ -3,6 +3,8 @@ package user
 import (
 	"context"
 	"fmt"
+	"net/http"
+
 	"github.com/SALT-Indonesia/salt-pkg/httpmanager"
 )
 
@@ -128,6 +130,45 @@ func NewGetUserProfileHandler() *httpmanager.Handler[GetUserRequest, map[string]
 
 		return &result, nil
 	})
+}
+
+// NewUserAvatarUploadHandler demonstrates form data upload with path parameters
+// Example usage: POST /user/{id}/avatar -F "name=John" -F "avatar=@photo.jpg"
+func NewUserAvatarUploadHandler() *httpmanager.UploadHandler {
+	return httpmanager.NewUploadHandler(
+		http.MethodPost,
+		"./uploads",
+		func(ctx context.Context, files map[string][]*httpmanager.UploadedFile, form map[string][]string) (interface{}, error) {
+			// Extract path parameters
+			pathParams := httpmanager.GetPathParams(ctx)
+			userID := pathParams.Get("id")
+
+			// Extract form values
+			name := httpmanager.GetFormValue(form, "name")
+
+			// Process uploaded files
+			var uploadedFiles []map[string]interface{}
+			for fieldName, fileList := range files {
+				for _, file := range fileList {
+					uploadedFiles = append(uploadedFiles, map[string]interface{}{
+						"field":        fieldName,
+						"filename":     file.Filename,
+						"size":         file.Size,
+						"content_type": file.ContentType,
+						"saved_path":   file.SavedPath,
+					})
+				}
+			}
+
+			return map[string]interface{}{
+				"status":  "success",
+				"user_id": userID,
+				"name":    name,
+				"message": fmt.Sprintf("Avatar uploaded for user %s", userID),
+				"files":   uploadedFiles,
+			}, nil
+		},
+	)
 }
 
 // NewUserSearchHandler demonstrates automatic query parameter binding

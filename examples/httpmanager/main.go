@@ -59,6 +59,9 @@ func main() {
 	server.PUT("/user/{id}", user.NewUpdateUserHandler())
 	server.GET("/user/{id}/profile/{section}", user.NewGetUserProfileHandler())
 
+	// Form data with path parameters - demonstrating upload with path params
+	server.POST("/user/{id}/avatar", user.NewUserAvatarUploadHandler())
+
 	// Query parameter binding route - demonstrating automatic query parameter binding
 	server.GET("/users/search", user.NewUserSearchHandler())
 
@@ -78,6 +81,10 @@ func main() {
 	log.Println("GET http://localhost:8080/user/123/profile/settings")
 	log.Println("GET http://localhost:8080/user/456/profile/activity")
 	log.Println("GET http://localhost:8080/user/789/profile/preferences")
+	log.Println("")
+	log.Println("Form data with path parameters example:")
+	log.Println("POST http://localhost:8080/user/{id}/avatar")
+	log.Println("  curl -X POST http://localhost:8080/user/123/avatar -F \"name=John\" -F \"avatar=@photo.jpg\"")
 	log.Println("")
 	log.Println("Automatic query parameter binding examples:")
 	log.Println("GET http://localhost:8080/users/search?name=john&min_age=18&max_age=65&active=true&tags=developer&tags=golang&include_email=true")
