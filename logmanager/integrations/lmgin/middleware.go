@@ -45,6 +45,9 @@ func Middleware(app *logmanager.Application) gin.HandlerFunc {
 
 		c.Next()
 
+		// Capture multipart form data after handler has parsed it
+		tx.CaptureMultipartFormData(c.Request)
+
 		tx.SetWebResponse(logmanager.WebResponse{
 			StatusCode: rw.StatusCode,
 			Body:       rw.Body.Bytes(),

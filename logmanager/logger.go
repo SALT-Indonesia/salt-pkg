@@ -1,15 +1,18 @@
 package logmanager
 
 import (
+	"io"
+	"time"
+
 	"github.com/SALT-Indonesia/salt-pkg/logmanager/internal"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/natefinch/lumberjack.v2"
-	"time"
 )
 
-func newStandardLogger(debug bool, logDir string, masker *internal.JSONMasker) *logrus.Logger {
+func newStandardLogger(debug bool, logDir string, splitLevelOutput bool, masker *internal.JSONMasker) *logrus.Logger {
 	l := logrus.New()
-	l.SetFormatter(&logrus.JSONFormatter{})
+	formatter := &logrus.JSONFormatter{}
+	l.SetFormatter(formatter)
 	l.SetLevel(logrus.InfoLevel)
 	l.AddHook(masker.LogrusMiddleware())
 	if debug {
@@ -23,6 +26,10 @@ func newStandardLogger(debug bool, logDir string, masker *internal.JSONMasker) *
 		l.SetOutput(&lumberjack.Logger{
 			Filename: logFilePath,
 		})
+	} else if splitLevelOutput {
+		// Discard the default output; the hook handles writing to stdout/stderr
+		l.SetOutput(io.Discard)
+		l.AddHook(newSplitLevelOutputHook(formatter))
 	}
 
 	return l

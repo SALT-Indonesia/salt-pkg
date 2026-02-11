@@ -2,6 +2,26 @@
 
 ## [Unreleased]
 
+## [1.40.0] - 2026-02-11
+- **Add split-level log output routing for containerized environments (#52)**
+  - Add `WithSplitLevelOutput()` option following Twelve-Factor App principles
+  - DEBUG, INFO, TRACE levels are written to `os.Stdout`
+  - WARN, ERROR, FATAL, PANIC levels are written to `os.Stderr`
+  - Implemented via a custom logrus hook (`splitLevelOutputHook`) that formats and routes entries by level
+  - Option is ignored when `WithLogDir()` is set (file-based logging takes precedence)
+  - Resolves false positives in container log collectors (Docker, Kubernetes) that treat stderr as error state
+  - Add 10 unit tests covering all log levels, hook behavior, and option configuration
+- **Fix multipart/form-data request logging in middleware (#13)**
+  - Add `CaptureMultipartFormData(r *http.Request)` method to `TxnRecord` for post-handler form data capture
+  - Add `CaptureMultipartFormDataIfParsed()` internal function that safely extracts parsed form data
+  - Update `lmecho` middleware to capture multipart form data after handler processes the request
+  - Update `lmgorilla` middleware to capture multipart form data after handler processes the request
+  - Update `lmgin` middleware to capture multipart form data after handler processes the request
+  - Form fields and file metadata (field name, filename, size, headers) are now logged for multipart requests
+  - Only captures data when form has been parsed by the handler and request body wasn't already recorded
+  - Add 6 unit tests covering capture scenarios, no-op conditions, and file upload metadata
+  - Add `echo-multipart` example demonstrating form data and file upload logging with Echo framework
+
 ## [1.39.0] - 2026-02-11
 - **Add HTTP Flusher, Hijacker, and Pusher support for middleware (#49)**
   - Add `Flush()` method to `replacementResponseWriter` for Server-Sent Events (SSE) and chunked transfer encoding
