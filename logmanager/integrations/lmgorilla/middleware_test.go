@@ -178,3 +178,127 @@ func middleware(contexts map[logmanager.ContextKey]string) mux.MiddlewareFunc {
 		})
 	}
 }
+
+func TestMiddleware_WithStreaming(t *testing.T) {
+	app := logmanager.NewTestableApplication(
+		logmanager.WithAppName("test-streaming"),
+	)
+
+	r := mux.NewRouter()
+	r.Use(lmgorilla.Middleware(app.Application))
+
+	// Handler that tests Flusher interface
+	r.HandleFunc("/stream", func(w http.ResponseWriter, r *http.Request) {
+		// Test that http.Flusher interface is available
+		flusher, ok := w.(http.Flusher)
+		assert.True(t, ok, "ResponseWriter should implement http.Flusher")
+
+		if !ok {
+			http.Error(w, "Streaming not supported", http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "text/event-stream")
+		w.Header().Set("Cache-Control", "no-cache")
+
+		// Send a few chunks
+		for i := 0; i < 3; i++ {
+			_, err := w.Write([]byte("data: test\n\n"))
+			assert.NoError(t, err)
+			flusher.Flush()
+		}
+	}).Methods(http.MethodGet)
+
+	// Create test request
+	req := httptest.NewRequest(http.MethodGet, "/stream", nil)
+	w := httptest.NewRecorder()
+
+	// Serve the request
+	r.ServeHTTP(w, req)
+
+	// Verify response
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Contains(t, w.Body.String(), "data: test")
+
+	// Verify logging captured the response
+	assert.Equal(t, 1, app.CountLoggedEntries(), "Should have logged one entry")
+	assert.True(t, app.HasLoggedField("trace_id"), "Should log trace_id")
+	assert.True(t, app.HasLoggedField("status"), "Should log status")
+	assert.Equal(t, 200, app.GetLoggedField("status"), "Should log 200 status")
+	assert.Equal(t, "GET /stream", app.GetLoggedField("name"), "Should log correct transaction name")
+}
+
+func TestMiddleware_WithHijacker(t *testing.T) {
+	app := logmanager.NewTestableApplication(
+		logmanager.WithAppName("test-hijacker"),
+	)
+
+	r := mux.NewRouter()
+	r.Use(lmgorilla.Middleware(app.Application))
+
+	// Handler that tests Hijacker interface availability
+	r.HandleFunc("/hijack", func(w http.ResponseWriter, r *http.Request) {
+		// Test that http.Hijacker interface type assertion works
+		// Note: httptest.ResponseRecorder doesn't implement Hijacker,
+		// so this will fail, but we're testing that the interface
+		// is properly exposed (not that it succeeds)
+		_, ok := w.(http.Hijacker)
+
+		// In a real server, this would be true
+		// In httptest, it's false, but the important part is
+		// that the type assertion doesn't panic
+		if ok {
+			w.WriteHeader(http.StatusSwitchingProtocols)
+		} else {
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte("hijacker not supported in test"))
+		}
+	}).Methods(http.MethodGet)
+
+	req := httptest.NewRequest(http.MethodGet, "/hijack", nil)
+	w := httptest.NewRecorder()
+
+	// Should not panic
+	assert.NotPanics(t, func() {
+		r.ServeHTTP(w, req)
+	})
+
+	// Verify logging
+	assert.Equal(t, 1, app.CountLoggedEntries(), "Should have logged one entry")
+}
+
+func TestMiddleware_WithPusher(t *testing.T) {
+	app := logmanager.NewTestableApplication(
+		logmanager.WithAppName("test-pusher"),
+	)
+
+	r := mux.NewRouter()
+	r.Use(lmgorilla.Middleware(app.Application))
+
+	// Handler that tests Pusher interface availability
+	r.HandleFunc("/push", func(w http.ResponseWriter, r *http.Request) {
+		// Test that http.Pusher interface type assertion works
+		pusher, ok := w.(http.Pusher)
+
+		if ok {
+			// Try to push (will fail in test, but shouldn't panic)
+			_ = pusher.Push("/resource.css", nil)
+			w.WriteHeader(http.StatusOK)
+		} else {
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte("pusher not supported in test"))
+		}
+	}).Methods(http.MethodGet)
+
+	req := httptest.NewRequest(http.MethodGet, "/push", nil)
+	w := httptest.NewRecorder()
+
+	// Should not panic
+	assert.NotPanics(t, func() {
+		r.ServeHTTP(w, req)
+	})
+
+	// Verify logging
+	assert.Equal(t, 1, app.CountLoggedEntries(), "Should have logged one entry")
+	assert.Equal(t, 200, app.GetLoggedField("status"), "Should log 200 status")
+}

@@ -1,10 +1,13 @@
 package lmecho
 
 import (
+	"bufio"
 	"bytes"
-	"github.com/SALT-Indonesia/salt-pkg/logmanager"
+	"errors"
+	"net"
 	"net/http"
 
+	"github.com/SALT-Indonesia/salt-pkg/logmanager"
 	"github.com/labstack/echo/v4"
 )
 
@@ -17,6 +20,29 @@ func (w *customWriter) Write(b []byte) (int, error) {
 	w.Body.Write(b)
 
 	return w.ResponseWriter.Write(b)
+}
+
+// Flush implements http.Flusher interface for streaming responses (SSE, chunked)
+func (w *customWriter) Flush() {
+	if flusher, ok := w.ResponseWriter.(http.Flusher); ok {
+		flusher.Flush()
+	}
+}
+
+// Hijack implements http.Hijacker interface for WebSocket upgrades
+func (w *customWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	if hijacker, ok := w.ResponseWriter.(http.Hijacker); ok {
+		return hijacker.Hijack()
+	}
+	return nil, nil, errors.New("http.Hijacker interface not supported")
+}
+
+// Push implements http.Pusher interface for HTTP/2 server push
+func (w *customWriter) Push(target string, opts *http.PushOptions) error {
+	if pusher, ok := w.ResponseWriter.(http.Pusher); ok {
+		return pusher.Push(target, opts)
+	}
+	return http.ErrNotSupported
 }
 
 func traceID(c echo.Context, app *logmanager.Application) string {
