@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+## [1.39.0] - 2026-02-11
+- **Add HTTP Flusher, Hijacker, and Pusher support for middleware (#49)**
+  - Add `Flush()` method to `replacementResponseWriter` for Server-Sent Events (SSE) and chunked transfer encoding
+  - Add `Hijack()` method to `replacementResponseWriter` for WebSocket upgrades
+  - Add `Push()` method to `replacementResponseWriter` for HTTP/2 server push
+  - Add same optional interface methods to `lmecho`'s `customWriter` for consistency
+  - All methods gracefully delegate to underlying writer when supported
+  - Headers are automatically written before flushing or hijacking
+  - Add comprehensive unit tests (12 test cases) for all optional interfaces
+  - Add integration tests for streaming support in `lmgorilla` middleware
+  - Add `gorilla-streaming` example demonstrating SSE, chunked transfer, and NDJSON streaming
+  - Fix resolves middleware breaking streaming responses by properly implementing optional HTTP interfaces
+  - 100% backward compatible with existing code
+
 ## [1.38.2] - 2025-12-09
 - **Add Debug() method to Application (#40)**
   - New public method `Debug() bool` returns whether debug mode is enabled for the application
