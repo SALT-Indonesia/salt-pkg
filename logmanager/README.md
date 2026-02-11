@@ -437,6 +437,67 @@ func handler(c *gin.Context) {
 }
 ```
 
+### Split-Level Log Output
+
+By default, logrus writes all log output to `os.Stderr`. In containerized environments (Docker, Kubernetes), log collectors often treat stderr as an error state, causing false alerts for normal INFO and DEBUG logs.
+
+`WithSplitLevelOutput()` routes log entries to different outputs based on severity level:
+
+| Level | Output |
+|-------|--------|
+| `TRACE`, `DEBUG`, `INFO` | `os.Stdout` |
+| `WARN`, `ERROR`, `FATAL`, `PANIC` | `os.Stderr` |
+
+#### Basic Usage
+
+```go
+app := logmanager.NewApplication(
+    logmanager.WithService("user-service"),
+    logmanager.WithSplitLevelOutput(),
+)
+```
+
+#### Production Configuration
+
+```go
+app := logmanager.NewApplication(
+    logmanager.WithService("order-service"),
+    logmanager.WithEnvironment("production"),
+    logmanager.WithSplitLevelOutput(),
+    logmanager.WithMaskingConfig([]logmanager.MaskingConfig{
+        {JSONPath: "$..password", Type: logmanager.FullMask},
+        {JSONPath: "$..token", Type: logmanager.FullMask},
+    }),
+)
+```
+
+#### Kubernetes / Docker Compose
+
+When `WithSplitLevelOutput()` is enabled, container orchestrators can properly distinguish between informational and error logs:
+
+```yaml
+# docker-compose.yml
+services:
+  api:
+    image: my-service:latest
+    environment:
+      - APP_ENV=production
+    logging:
+      driver: json-file
+```
+
+```bash
+# Kubernetes: view only error logs
+kubectl logs my-pod 2>/dev/null  # stdout only (info/debug)
+kubectl logs my-pod 1>/dev/null  # stderr only (warn/error)
+```
+
+#### Behavior Notes
+
+- This option is **ignored** when `WithLogDir()` is set, since file-based logging writes all levels to the same log file.
+- When not enabled, the default logrus behavior applies (all levels to `os.Stderr`).
+- The JSON format always includes the `"level"` field regardless of this setting.
+
 ## Framework Integrations
 
 ### Gorilla Mux
