@@ -74,6 +74,19 @@ func (txn *TxnRecord) setWebRequest(r WebRequest) {
 	internal.RequestAgentAttributes(txn.attrs, r.Method, h, r.URL, r.Host)
 }
 
+// CaptureMultipartFormData captures multipart form data from the request after
+// the handler has parsed it. This should be called after the handler runs to capture
+// form fields and file metadata that were parsed during request processing.
+// It only captures data if the request has multipart/form-data content type and
+// the form has been parsed (r.MultipartForm is not nil). If request body was already
+// captured (e.g., for JSON requests), this method does nothing.
+func (txn *TxnRecord) CaptureMultipartFormData(r *http.Request) {
+	if nil == txn || nil == r {
+		return
+	}
+	internal.CaptureMultipartFormDataIfParsed(txn.attrs, r)
+}
+
 // SetWebResponseHttp wraps the given http.ResponseWriter with a replacementResponseWriter that tracks transaction details.
 func (txn *TxnRecord) SetWebResponseHttp(w http.ResponseWriter) http.ResponseWriter {
 	if nil == txn || w == nil {

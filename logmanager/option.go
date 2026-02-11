@@ -98,3 +98,17 @@ func WithEnvironment(environment string) Option {
 		}
 	}
 }
+
+// WithSplitLevelOutput enables split-level log output routing following Twelve-Factor App principles.
+// When enabled, log output is directed based on severity level:
+//   - DEBUG, INFO, TRACE levels are written to os.Stdout
+//   - WARN, ERROR, FATAL, PANIC levels are written to os.Stderr
+//
+// This is useful in containerized environments (Docker, Kubernetes) where log collectors
+// treat stderr as an error state. Without this option, logrus defaults all output to stderr.
+// This option is ignored when WithLogDir is set (file-based logging).
+func WithSplitLevelOutput() Option {
+	return func(app *Application) {
+		app.splitLevelOutput = true
+	}
+}

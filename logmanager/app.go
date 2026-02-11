@@ -19,11 +19,12 @@ type Application struct {
 	logDir            string
 	traceIDViaHeader  bool
 	traceIDContextKey ContextKey
-	traceIDHeaderKey string
-	maskingConfigs   []MaskingConfig
+	traceIDHeaderKey  string
+	maskingConfigs    []MaskingConfig
 	tags              []string
 	exposeHeaders     []string
 	traceIDKey        string
+	splitLevelOutput  bool
 }
 
 // Service returns the service name used within the Application instance.
@@ -123,7 +124,7 @@ func NewApplication(opts ...Option) *Application {
 
 	// Create masker with masking configs
 	masker := internal.NewJSONMasker(ConvertMaskingConfigs(app.maskingConfigs))
-	app.logger = newStandardLogger(app.debug, app.logDir, masker)
+	app.logger = newStandardLogger(app.debug, app.logDir, app.splitLevelOutput, masker)
 
 	return app
 }

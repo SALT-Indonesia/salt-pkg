@@ -768,6 +768,130 @@ func TestToObjArrayHandling(t *testing.T) {
 	}
 }
 
+func TestCaptureMultipartFormDataIfParsed_CapturesAfterHandlerParsing(t *testing.T) {
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	_ = writer.WriteField("name", "John Doe")
+	_ = writer.WriteField("email", "john@example.com")
+	writer.Close()
+
+	req, _ := http.NewRequest("POST", "http://example.com/upload", body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+
+	// First call: request body attributes called BEFORE form is parsed (as middleware does)
+	attrs := internal.NewAttributes()
+	internal.RequestBodyAttributes(attrs, req)
+
+	// Form was not parsed, so request body should be nil
+	assert.Nil(t, attrs.Value().Get(internal.AttributeRequestBody))
+
+	// Simulate handler parsing the form
+	_ = req.ParseMultipartForm(32 << 20)
+
+	// Second call: capture after handler has parsed
+	internal.CaptureMultipartFormDataIfParsed(attrs, req)
+
+	// Now the form data should be captured
+	requestBody := attrs.Value().Get(internal.AttributeRequestBody)
+	assert.NotNil(t, requestBody)
+
+	formData, ok := requestBody.(map[string]interface{})
+	assert.True(t, ok)
+	assert.Equal(t, "John Doe", formData["name"])
+	assert.Equal(t, "john@example.com", formData["email"])
+}
+
+func TestCaptureMultipartFormDataIfParsed_NoopWhenBodyAlreadyCaptured(t *testing.T) {
+	// Simulate a JSON request where body is already captured
+	jsonReq, _ := http.NewRequest("POST", "http://example.com/api", bytes.NewBufferString(`{"key":"value"}`))
+
+	attrs := internal.NewAttributes()
+	internal.RequestBodyAttributes(attrs, jsonReq)
+
+	// Body should be captured
+	assert.NotNil(t, attrs.Value().Get(internal.AttributeRequestBody))
+
+	// CaptureMultipartFormDataIfParsed should not overwrite
+	internal.CaptureMultipartFormDataIfParsed(attrs, jsonReq)
+
+	// Body should still be the original JSON
+	body := attrs.Value().Get(internal.AttributeRequestBody)
+	bodyMap, ok := body.(map[string]interface{})
+	assert.True(t, ok)
+	assert.Equal(t, "value", bodyMap["key"])
+}
+
+func TestCaptureMultipartFormDataIfParsed_NoopForNonMultipart(t *testing.T) {
+	req, _ := http.NewRequest("POST", "http://example.com/api", bytes.NewBufferString(`{"key":"value"}`))
+	req.Header.Set("Content-Type", "application/json")
+
+	attrs := internal.NewAttributes()
+	internal.CaptureMultipartFormDataIfParsed(attrs, req)
+
+	// Should not capture anything for non-multipart content type
+	assert.Nil(t, attrs.Value().Get(internal.AttributeRequestBody))
+}
+
+func TestCaptureMultipartFormDataIfParsed_NoopForNilRequest(t *testing.T) {
+	attrs := internal.NewAttributes()
+	internal.CaptureMultipartFormDataIfParsed(attrs, nil)
+	assert.Nil(t, attrs.Value().Get(internal.AttributeRequestBody))
+}
+
+func TestCaptureMultipartFormDataIfParsed_NoopWhenFormNotParsed(t *testing.T) {
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	_ = writer.WriteField("name", "John")
+	writer.Close()
+
+	req, _ := http.NewRequest("POST", "http://example.com/upload", body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+
+	// Don't parse the form
+	attrs := internal.NewAttributes()
+	internal.CaptureMultipartFormDataIfParsed(attrs, req)
+
+	// Should not capture anything since form wasn't parsed
+	assert.Nil(t, attrs.Value().Get(internal.AttributeRequestBody))
+}
+
+func TestCaptureMultipartFormDataIfParsed_WithFileUpload(t *testing.T) {
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	_ = writer.WriteField("description", "My document")
+
+	part, _ := writer.CreateFormFile("file", "document.pdf")
+	_, _ = part.Write([]byte("PDF content"))
+	writer.Close()
+
+	req, _ := http.NewRequest("POST", "http://example.com/upload", body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+
+	attrs := internal.NewAttributes()
+	// Simulate middleware calling SetWebRequest before form is parsed
+	internal.RequestBodyAttributes(attrs, req)
+	assert.Nil(t, attrs.Value().Get(internal.AttributeRequestBody))
+
+	// Simulate handler parsing the form
+	_ = req.ParseMultipartForm(32 << 20)
+
+	// Capture after handler
+	internal.CaptureMultipartFormDataIfParsed(attrs, req)
+
+	requestBody := attrs.Value().Get(internal.AttributeRequestBody)
+	assert.NotNil(t, requestBody)
+
+	formData, ok := requestBody.(map[string]interface{})
+	assert.True(t, ok)
+	assert.Equal(t, "My document", formData["description"])
+
+	files, ok := formData["_files"].([]map[string]interface{})
+	assert.True(t, ok)
+	assert.Len(t, files, 1)
+	assert.Equal(t, "file", files[0]["field"])
+	assert.Equal(t, "document.pdf", files[0]["filename"])
+}
+
 // TestRequestBodyAttributesWithArrays specifically tests array handling improvements
 func TestRequestBodyAttributesWithArrays(t *testing.T) {
 	tests := []struct {

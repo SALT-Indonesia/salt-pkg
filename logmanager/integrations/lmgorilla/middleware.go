@@ -46,6 +46,9 @@ func Middleware(app *logmanager.Application) mux.MiddlewareFunc {
 			r = logmanager.RequestWithContext(r, app.TraceIDContextKey(), traceID)
 			r = logmanager.RequestWithTransactionContext(r, tx)
 			next.ServeHTTP(w, r)
+
+			// Capture multipart form data after handler has parsed it
+			tx.CaptureMultipartFormData(r)
 		})
 	}
 }

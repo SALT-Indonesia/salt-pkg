@@ -262,6 +262,33 @@ func extractMultipartFormData(a *Attributes, r *http.Request) {
 	}
 }
 
+// CaptureMultipartFormDataIfParsed captures multipart form data from the request
+// after the handler has already parsed it. This is called post-handler to ensure
+// form data is logged even when the middleware captures the request before parsing.
+// It only acts when the content type is multipart/form-data, the form has been parsed,
+// and no request body attribute has been set yet.
+func CaptureMultipartFormDataIfParsed(a *Attributes, r *http.Request) {
+	if nil == r {
+		return
+	}
+
+	contentType := r.Header.Get("Content-Type")
+	if !strings.Contains(contentType, "multipart/form-data") {
+		return
+	}
+
+	if r.MultipartForm == nil {
+		return
+	}
+
+	// Only capture if request body wasn't already set
+	if a.value.IsNotEmpty(AttributeRequestBody) {
+		return
+	}
+
+	extractMultipartFormData(a, r)
+}
+
 // parseFormData parses application/x-www-form-urlencoded form data.
 func parseFormData(a *Attributes, r *http.Request) {
 	// Read body first and restore it after parsing

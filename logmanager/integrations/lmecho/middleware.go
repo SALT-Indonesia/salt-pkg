@@ -106,6 +106,9 @@ func Middleware(app *logmanager.Application) echo.MiddlewareFunc {
 
 			err := writeResponse(next, c, tx, app.TraceIDHeaderKey(), actualTraceID)
 
+			// Capture multipart form data after handler has parsed it
+			tx.CaptureMultipartFormData(c.Request())
+
 			return err
 		}
 	}
