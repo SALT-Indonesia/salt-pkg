@@ -4,7 +4,7 @@ go 1.24.0
 
 require (
 	github.com/Azure/go-ntlmssp v0.0.0-20221128193559-754e69321358
-	github.com/SALT-Indonesia/salt-pkg/logmanager v1.38.1
+	github.com/SALT-Indonesia/salt-pkg/logmanager v1.41.0
 	github.com/aws/aws-sdk-go-v2 v1.38.2
 	github.com/aws/aws-sdk-go-v2/credentials v1.18.8
 	github.com/dghubble/oauth1 v0.7.3
@@ -25,6 +25,7 @@ require (
 	github.com/ggwhite/go-masker/v2 v2.1.0 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
+	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/oliveagle/jsonpath v0.0.0-20180606110733-2e52cf6e6852 // indirect

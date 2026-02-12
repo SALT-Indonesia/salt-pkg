@@ -3,7 +3,7 @@ module github.com/SALT-Indonesia/salt-pkg/httpmanager
 go 1.24.0
 
 require (
-	github.com/SALT-Indonesia/salt-pkg/logmanager v1.38.2
+	github.com/SALT-Indonesia/salt-pkg/logmanager v1.41.0
 	github.com/gorilla/mux v1.8.1
 	github.com/stretchr/testify v1.11.1
 )

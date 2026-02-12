@@ -1,5 +1,5 @@
-github.com/SALT-Indonesia/salt-pkg/logmanager v1.38.2 h1:8//D3fkiO0G8uN6IXmnrlvkDN5qNpCrTQcYl46eCpSo=
-github.com/SALT-Indonesia/salt-pkg/logmanager v1.38.2/go.mod h1:na+KCOW3Umy2zNWSirpanHIDweuEklxqI0yRp9gV0Qs=
+github.com/SALT-Indonesia/salt-pkg/logmanager v1.41.0 h1:7WBy5APSwMIrGYSUMw6RfwM1GNCYxkSMazoPgjCQg1A=
+github.com/SALT-Indonesia/salt-pkg/logmanager v1.41.0/go.mod h1:tF7t+MC+1Uzf+2n/KltkiqfQPbBDtKuBrfoV5A7dYZM=
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
