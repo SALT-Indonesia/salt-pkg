@@ -135,6 +135,9 @@ func (attr AttributeValues) Add(id string, otherVal interface{}) {
 // It registers the request method and checks if the provided URL is not nil to add the request URI.
 // If the HTTP header is provided, it also adds the request host and content length to the Attributes.
 func RequestAgentAttributes(a *Attributes, method string, h http.Header, u *url.URL, host string) {
+	if nil == a || nil == a.value {
+		return
+	}
 	a.value.AddString(AttributeRequestMethod, method)
 
 	if nil != u {
@@ -166,6 +169,9 @@ func QueryParamsToMap(u *url.URL) map[string]string {
 }
 
 func headerAttributes(a *Attributes, h http.Header) {
+	if nil == a || nil == a.value {
+		return
+	}
 	headers := make(map[string]string)
 	for k, v := range h {
 		headers[k] = strings.Join(v, ",")
@@ -180,7 +186,7 @@ func headerAttributes(a *Attributes, h http.Header) {
 // For multipart/form-data requests, it only parses if the form has already been parsed (r.MultipartForm != nil),
 // otherwise it's likely a client request where parsing would consume the body.
 func RequestBodyAttributes(a *Attributes, r *http.Request) {
-	if nil == r {
+	if nil == a || nil == a.value || nil == r {
 		return
 	}
 
@@ -221,7 +227,7 @@ func RequestBodyAttributes(a *Attributes, r *http.Request) {
 // extractMultipartFormData extracts already-parsed multipart/form-data fields and file information.
 // This function expects r.MultipartForm to be already populated (e.g., by server middleware or ParseMultipartForm).
 func extractMultipartFormData(a *Attributes, r *http.Request) {
-	if r.MultipartForm == nil {
+	if nil == a || nil == a.value || r.MultipartForm == nil {
 		return
 	}
 
@@ -268,7 +274,7 @@ func extractMultipartFormData(a *Attributes, r *http.Request) {
 // It only acts when the content type is multipart/form-data, the form has been parsed,
 // and no request body attribute has been set yet.
 func CaptureMultipartFormDataIfParsed(a *Attributes, r *http.Request) {
-	if nil == r {
+	if nil == a || nil == a.value || nil == r {
 		return
 	}
 
@@ -291,6 +297,9 @@ func CaptureMultipartFormDataIfParsed(a *Attributes, r *http.Request) {
 
 // parseFormData parses application/x-www-form-urlencoded form data.
 func parseFormData(a *Attributes, r *http.Request) {
+	if nil == a || nil == a.value {
+		return
+	}
 	// Read body first and restore it after parsing
 	bodyBytes, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -321,7 +330,7 @@ func parseFormData(a *Attributes, r *http.Request) {
 
 // RequestBodyAttribute adds a request body to the given attributes if the body is not nil.
 func RequestBodyAttribute(a *Attributes, body interface{}) {
-	if nil == body {
+	if nil == a || nil == a.value || nil == body {
 		return
 	}
 	a.value.Add(AttributeRequestBody, body)
@@ -331,7 +340,7 @@ func RequestBodyAttribute(a *Attributes, body interface{}) {
 // It reads all bytes from the response body and resets the body to allow further reading.
 // The content is added to Attributes if it is not empty.
 func ResponseBodyAttributes(a *Attributes, resp *http.Response) {
-	if nil == resp {
+	if nil == a || nil == a.value || nil == resp {
 		return
 	}
 
@@ -353,6 +362,9 @@ func toString(val interface{}) string {
 
 // ResponseCodeAttribute assigns an HTTP status code as a string to the given Attributes instance using the AttributeResponseCode key.
 func ResponseCodeAttribute(a *Attributes, code int) {
+	if nil == a || nil == a.value {
+		return
+	}
 	a.value.Add(AttributeResponseCode, code)
 }
 
