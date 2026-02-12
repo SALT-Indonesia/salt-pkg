@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.16.6] - 2026-02-12
+
+### Changed
+- Updated logmanager dependency from v1.38.2 to v1.41.0
+
 ## [0.16.5] - 2026-01-08
 
 ### Fixed
