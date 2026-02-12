@@ -2,17 +2,6 @@
 
 ## [Unreleased]
 
-## [1.41.0] - 2026-02-12
-- **Fix nil pointer dereference when using transactions in async goroutines (#54)**
-  - Add nil checks for `Attributes` and `Attributes.value` in all attribute functions
-  - Prevents panic when transactions are accessed after `End()` is called
-  - Fixes race condition in high-traffic scenarios with concurrent goroutine access
-  - Add double nil checks (`nil == a || nil == a.value`) to handle race window between check and access
-  - Updated functions: `ResponseBodyAttribute`, `RequestBodyConsumerAttributes`, `RequestAgentAttributes`, `headerAttributes`, `RequestBodyAttributes`, `extractMultipartFormData`, `CaptureMultipartFormDataIfParsed`, `parseFormData`, `RequestBodyAttribute`, `ResponseBodyAttributes`, `ResponseCodeAttribute`
-  - Add `gin-async-test` example demonstrating async goroutine usage with Gin framework
-  - Tested with 20+ concurrent requests without panics
-  - Root cause: middleware calls `tx.End()` → `reset()` → `attrs = nil` while goroutines still hold transaction reference
-
 ## [1.40.0] - 2026-02-11
 - **Add split-level log output routing for containerized environments (#52)**
   - Add `WithSplitLevelOutput()` option following Twelve-Factor App principles
