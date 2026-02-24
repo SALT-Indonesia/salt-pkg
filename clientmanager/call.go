@@ -59,7 +59,7 @@ func call[Response any](
 	}
 	defer txn.End()
 
-	res, err := cOptions.client.Do(req)
+	res, err := cOptions.client.Do(req) // #nosec G704 - This is a client library, SSRF protection is caller's responsibility
 	if err != nil {
 		txn.NoticeError(err)
 

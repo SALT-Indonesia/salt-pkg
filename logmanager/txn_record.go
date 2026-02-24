@@ -2,6 +2,7 @@ package logmanager
 
 import (
 	"github.com/SALT-Indonesia/salt-pkg/logmanager/internal"
+	otellog "github.com/SALT-Indonesia/salt-pkg/logmanager/otel"
 	"github.com/sirupsen/logrus"
 	"time"
 )
@@ -23,6 +24,8 @@ type TxnRecord struct {
 	traceIDKey                string
 	skipRequest, skipResponse bool
 	exposeAllHeader           bool
+	// OpenTelemetry span
+	otelSpan *otellog.Span
 }
 
 // Deprecated: MarkAsErrorBusiness is deprecated.
@@ -73,6 +76,15 @@ func (txn *TxnRecord) End() {
 
 	txn.stop = time.Now()
 	txn.duration = txn.stop.Sub(txn.start)
+
+	// Export OTel span before writing log
+	if txn.otelSpan != nil && !txn.otelSpan.IsNil() {
+		// Set error status if there's an error
+		if txn.error != nil {
+			txn.otelSpan.SetError(txn.error)
+		}
+		txn.otelSpan.End()
+	}
 
 	txn.writeLog()
 	txn.reset()

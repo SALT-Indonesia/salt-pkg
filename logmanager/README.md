@@ -1100,6 +1100,288 @@ func handleLargeUpload(c *gin.Context) {
 }
 ```
 
+## OpenTelemetry Integration
+
+LogManager supports exporting traces to OpenTelemetry-compatible backends (Jaeger, Zipkin, OTel Collector, Datadog, etc.) via OTLP.
+
+### Overview
+
+When OpenTelemetry is enabled, each transaction creates a corresponding OpenTelemetry span that is exported when `End()` is called. This allows you to:
+
+- **Visualize request flows** in distributed tracing systems like Jaeger
+- **Correlate logs with traces** using linked trace IDs
+- **Analyze performance** across service boundaries
+- **Monitor system health** with structured trace data
+
+### Basic Configuration
+
+```go
+app := logmanager.NewApplication(
+    logmanager.WithService("my-service"),
+    logmanager.WithEnvironment("production"),
+    logmanager.WithOpenTelemetry(
+        logmanager.WithOTelEndpoint("localhost:4317"),
+        logmanager.WithOTelInsecure(),
+    ),
+)
+```
+
+### Configuration Options
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `WithOTelEndpoint` | OTLP endpoint address | `localhost:4317` |
+| `WithOTelInsecure` | Disable TLS for OTLP connection | `false` |
+| `WithOTelHeaders` | Authentication headers for OTLP | `nil` |
+| `WithOTelServiceName` | Override service name in OTel | Uses `WithService()` value |
+
+### Supported Backends
+
+LogManager exports traces in OTLP format, compatible with:
+
+- **Jaeger** - `localhost:4317` (or `localhost:14317` for ephemeral instances)
+- **OpenTelemetry Collector** - `localhost:4317`
+- **Zipkin** - (via OTel Collector with Zipkin receiver)
+- **Datadog** - (via OTel Collector with Datadog exporter)
+- **Any OTLP-compatible backend** - Check your provider's OTLP endpoint
+
+### Example: Full Setup with Jaeger
+
+```go
+package main
+
+import (
+    "github.com/gin-gonic/gin"
+    "github.com/SALT-Indonesia/salt-pkg/logmanager"
+    "github.com/SALT-Indonesia/salt-pkg/logmanager/integrations/lmgin"
+)
+
+func main() {
+    // Initialize logmanager with OpenTelemetry
+    app := logmanager.NewApplication(
+        logmanager.WithService("user-service"),
+        logmanager.WithOpenTelemetry(
+            logmanager.WithOTelEndpoint("localhost:4317"),
+            logmanager.WithOTelInsecure(),
+        ),
+    )
+
+    // Setup Gin middleware
+    router := gin.New()
+    router.Use(lmgin.Middleware(app))
+
+    // Your handlers...
+    router.GET("/users/:id", getUser)
+    router.Run(":8080")
+}
+
+func getUser(c *gin.Context) {
+    tx := logmanager.FromContext(c.Request.Context())
+
+    // Database segment automatically creates OTel span
+    db := logmanager.StartDatabaseSegment(tx, logmanager.DatabaseSegment{
+        Name:  "GetUserByID",
+        Table: "users",
+        Query: "SELECT * FROM users WHERE id = $1",
+        Host:  "db:5432",
+    })
+    defer db.End()
+
+    // Your business logic...
+}
+```
+
+### Running Jaeger Locally
+
+```bash
+# Start Jaeger with OTLP receiver enabled
+docker run -d --name jaeger \
+  -e COLLECTOR_OTLP_ENABLED=true \
+  -p 4317:4317 \
+  -p 4318:4318 \
+  -p 16686:16686 \
+  jaegertracing/all-in-one:latest
+
+# Access Jaeger UI
+open http://localhost:16686
+```
+
+### Trace ID Correlation
+
+When OpenTelemetry is enabled, logmanager logs include both trace IDs for correlation:
+
+```json
+{
+  "trace_id": "550e8400-e29b-41d4-a716-446655440000",
+  "otel_trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+  "otel_span_id": "00f067aa0ba902b7",
+  "name": "GET /api/users",
+  "type": "http",
+  "latency": 145,
+  "service": "user-service"
+}
+```
+
+**Trace ID Mapping:**
+
+- **`trace_id`**: Custom logmanager trace ID (used in headers, context propagation)
+- **`otel_trace_id`**: OpenTelemetry trace ID (for correlation with OTel backends)
+- **`otel_span_id`**: OpenTelemetry span ID (for precise span identification)
+
+This dual-ID system enables:
+- ✅ Backward compatibility with existing trace ID systems
+- ✅ Correlation with external OTel traces
+- ✅ Gradual migration to pure OTel if needed
+
+### Transaction Type to Span Kind Mapping
+
+| TxnType | OTel Span Kind | Use Case |
+|---------|---------------|----------|
+| `TxnTypeHttp` | Server | Incoming HTTP request |
+| `TxnTypeApi` | Client | Outgoing HTTP call |
+| `TxnTypeGrpc` | Client | gRPC client call |
+| `TxnTypeDatabase` | Client | Database query |
+| `TxnTypeConsumer` | Consumer | Message queue consumer |
+| `TxnTypeOther` | Internal | Custom operation |
+
+### Span Attributes
+
+LogManager automatically adds OpenTelemetry attributes to spans:
+
+**HTTP Server Spans:**
+- `http.method` - Request method (GET, POST, etc.)
+- `http.url` - Full request URL
+- `http.target` - Request path
+- `http.scheme` - URL scheme (http/https)
+- `http.status_code` - Response status code
+- `server.address` - Host header
+
+**HTTP Client Spans:**
+- All server attributes plus:
+- `http.query_param.*` - Query parameters
+
+**Database Spans:**
+- `db.system` - Database type (sql, mysql, postgresql, etc.)
+- `db.name` - Database/table name
+- `db.statement` - Query (sanitized)
+- `peer.service` - Database host
+
+**gRPC Spans:**
+- `rpc.system` - RPC system (grpc)
+- `rpc.service` - gRPC service name
+- `rpc.method` - gRPC method name
+
+**Custom Attributes:**
+- `logmanager.trace_id` - Your custom trace ID for correlation
+- `service.name` - Service name
+- `deployment.environment` - Environment (production, development, etc.)
+
+### Example: Viewing Traces in Jaeger
+
+1. Start your application with OTel enabled
+2. Make some HTTP requests
+3. Open Jaeger UI: http://localhost:16686
+4. Select your service from the dropdown
+5. Click "Search Traces"
+6. Click on any trace to see:
+   - Request timeline
+   - Child spans (database queries, API calls)
+   - Attributes and tags
+   - Any errors
+
+### Advanced Configuration
+
+#### With Authentication
+
+```go
+app := logmanager.NewApplication(
+    logmanager.WithService("my-service"),
+    logmanager.WithOpenTelemetry(
+        logmanager.WithOTelEndpoint("otel-collector.prod.internal:4317"),
+        logmanager.WithOTelHeaders(map[string]string{
+            "Authorization": "Bearer <token>",
+        }),
+    ),
+)
+```
+
+#### With TLS
+
+```go
+// Note: Currently only insecure connections are supported
+// TLS support requires additional configuration
+app := logmanager.NewApplication(
+    logmanager.WithService("my-service"),
+    logmanager.WithOpenTelemetry(
+        logmanager.WithOTelEndpoint("otel-collector:4317"),
+        // Remove WithOTelInsecure() to use TLS (when supported)
+    ),
+)
+```
+
+#### Custom Service Name for OTel
+
+```go
+app := logmanager.NewApplication(
+    logmanager.WithService("my-service"),          // Used in logs
+    logmanager.WithOpenTelemetry(
+        logmanager.WithOTelServiceName("my-service-v2"), // Used in OTel
+    ),
+)
+```
+
+### Performance Considerations
+
+- **Overhead**: OTel export adds minimal overhead (~1-2ms per transaction)
+- **Batching**: Spans are exported in batches for efficiency
+- **Async**: Export is non-blocking, doesn't affect request processing
+- **Fail-safe**: Export errors don't impact application functionality
+- **Memory**: Unexported spans are garbage collected normally
+
+### Troubleshooting
+
+#### No traces appearing in Jaeger
+
+1. **Check Jaeger is running:**
+   ```bash
+   docker ps | grep jaeger
+   ```
+
+2. **Verify OTLP endpoint:**
+   - Default: `localhost:4317`
+   - Check Jaeger logs: `docker logs jaeger`
+
+3. **Test OTLP connection:**
+   ```bash
+   # Simple test with grpcurl
+   grpcurl -plaintext localhost:4317 list
+   ```
+
+4. **Enable debug mode** to see OTel initialization:
+   ```go
+   app := logmanager.NewApplication(
+       logmanager.WithService("test"),
+       logmanager.WithDebug(),
+       logmanager.WithOpenTelemetry(...),
+   )
+   ```
+
+#### High memory usage
+
+- OTel buffering can increase memory usage temporarily
+- Spans are exported in batches (default: every 1 second)
+- For high-traffic services, consider:
+  - Sampling strategies (not yet implemented)
+  - Filtering less important spans
+  - Adjusting batch size (requires custom configuration)
+
+### See Also
+
+- [OpenTelemetry Go Documentation](https://opentelemetry.io/docs/instrumentation/go/)
+- [Jaeger Documentation](https://www.jaegertracing.io/docs/)
+- [OTLP Specification](https://opentelemetry.io/docs/reference/specification/protocol/otlp/)
+- [Example Application](../examples/otel-example/)
+
 ## Best Practices
 
 1. **Always use middleware** for automatic request/response logging

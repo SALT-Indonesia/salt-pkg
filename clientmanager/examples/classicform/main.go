@@ -11,7 +11,7 @@ import (
 
 type Request struct {
 	Username string `json:"username"`
-	Password string `json:"password"`
+	Password string `json:"password"` // #nosec G117 - This is an example request struct, not a real credential
 }
 
 type Response struct {

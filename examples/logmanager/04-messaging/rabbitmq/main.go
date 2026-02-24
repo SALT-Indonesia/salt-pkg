@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -112,3 +111,4 @@ func (h *MessageHandler) processMessage(delivery amqp091.Delivery) {
 	// Simulate processing time
 	time.Sleep(100 * time.Millisecond)
 }
+

@@ -54,6 +54,16 @@ func (txn *TxnRecord) extractValues() map[string]interface{} {
 		"service":      txn.service,
 	}
 
+	// Add OTel trace/span IDs for correlation if available
+	if txn.otelSpan != nil && !txn.otelSpan.IsNil() {
+		if traceID := txn.otelSpan.TraceID(); traceID != "" {
+			values["otel_trace_id"] = traceID
+		}
+		if spanID := txn.otelSpan.SpanID(); spanID != "" {
+			values["otel_span_id"] = spanID
+		}
+	}
+
 	if len(txn.tags) > 0 {
 		values["tags"] = txn.tags
 	}
