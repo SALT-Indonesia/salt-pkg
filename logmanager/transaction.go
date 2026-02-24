@@ -55,7 +55,7 @@ func (t *Transaction) AddTxnNow(name string, logType TxnType, start time.Time) *
 
 	// Create OTel child span if tracer and parent span available
 	var otelChildSpan *otellog.Span
-	if t.otelTracer != nil && t.TxnRecord != nil && t.TxnRecord.otelSpan != nil {
+	if t.otelTracer != nil && t.otelSpan != nil {
 		// Determine span kind based on transaction type
 		var spanKind otellog.SpanKind
 		switch logType {
@@ -73,7 +73,7 @@ func (t *Transaction) AddTxnNow(name string, logType TxnType, start time.Time) *
 			spanKind = otellog.SpanKindInternal
 		}
 
-		span, _ := t.otelTracer.Start(context.Background(), name, t.TxnRecord.otelSpan, spanKind, start)
+		span, _ := t.otelTracer.Start(context.Background(), name, t.otelSpan, spanKind, start)
 		otelChildSpan = span
 	}
 

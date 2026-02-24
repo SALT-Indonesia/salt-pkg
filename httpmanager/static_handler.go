@@ -68,7 +68,7 @@ func (h *StaticHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	filePath := filepath.Join(h.rootDir, cleanPath)
 
 	// Check if the file exists
-	fileInfo, err := os.Stat(filePath)
+	fileInfo, err := os.Stat(filePath) // #nosec G703 - filePath is sanitized above with filepath.Clean and ".." check
 	if err != nil {
 		if os.IsNotExist(err) {
 			http.Error(w, "File not found", http.StatusNotFound)
@@ -85,7 +85,7 @@ func (h *StaticHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Open the file
-	file, err := os.Open(filepath.Clean(filePath)) // #nosec G304 - filePath is sanitized above
+	file, err := os.Open(filepath.Clean(filePath)) // #nosec G304,G703 - filePath is sanitized above with filepath.Clean and ".." check
 	if err != nil {
 		http.Error(w, "Failed to open file", http.StatusInternalServerError)
 		return

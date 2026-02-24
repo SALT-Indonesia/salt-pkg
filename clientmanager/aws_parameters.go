@@ -15,7 +15,7 @@ import (
 type AWSParameters struct {
 	signer  *v4.Signer
 	Key     string
-	Secret  string
+	Secret  string // #nosec G117 - AWS credential field, user-provided at runtime
 	Service string
 	Region  string
 }

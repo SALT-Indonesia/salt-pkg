@@ -8,9 +8,9 @@ import (
 
 type OAuth1Parameters struct {
 	ConsumerKey    string
-	ConsumerSecret string
-	AccessToken    string
-	TokenSecret    string
+	ConsumerSecret string // #nosec G117 - OAuth1 credential field, user-provided at runtime
+	AccessToken    string // #nosec G117 - OAuth1 token field, user-provided at runtime
+	TokenSecret    string // #nosec G117 - OAuth1 secret field, user-provided at runtime
 }
 
 func (p OAuth1Parameters) Client() *http.Client {
