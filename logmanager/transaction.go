@@ -1,7 +1,9 @@
 package logmanager
 
 import (
+	"context"
 	"github.com/SALT-Indonesia/salt-pkg/logmanager/internal"
+	otellog "github.com/SALT-Indonesia/salt-pkg/logmanager/otel"
 	"sync"
 	"time"
 )
@@ -14,6 +16,8 @@ type Transaction struct {
 	traceIDKey       string
 	traceIDHeaderKey string
 	mu               sync.Mutex
+	// OpenTelemetry tracer for creating child spans
+	otelTracer *otellog.Tracer
 }
 
 // ExposeAllHeaders modifies the transaction's configuration to enable exposing all headers.
@@ -49,6 +53,30 @@ func (t *Transaction) AddTxnNow(name string, logType TxnType, start time.Time) *
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
+	// Create OTel child span if tracer and parent span available
+	var otelChildSpan *otellog.Span
+	if t.otelTracer != nil && t.TxnRecord != nil && t.TxnRecord.otelSpan != nil {
+		// Determine span kind based on transaction type
+		var spanKind otellog.SpanKind
+		switch logType {
+		case TxnTypeApi:
+			spanKind = otellog.SpanKindClient
+		case TxnTypeDatabase:
+			spanKind = otellog.SpanKindClient
+		case TxnTypeGrpc:
+			spanKind = otellog.SpanKindClient
+		case TxnTypeConsumer:
+			spanKind = otellog.SpanKindConsumer
+		case TxnTypeHttp:
+			spanKind = otellog.SpanKindServer
+		default:
+			spanKind = otellog.SpanKindInternal
+		}
+
+		span, _ := t.otelTracer.Start(context.Background(), name, t.TxnRecord.otelSpan, spanKind, start)
+		otelChildSpan = span
+	}
+
 	s := &TxnRecord{
 		name:          name,
 		traceID:       t.traceID,
@@ -61,6 +89,7 @@ func (t *Transaction) AddTxnNow(name string, logType TxnType, start time.Time) *
 		exposeHeaders: t.exposeHeaders,
 		debug:         t.debug,
 		traceIDKey:    t.traceIDKey,
+		otelSpan:      otelChildSpan,
 	}
 	t.txnRecords[name] = s
 	return s

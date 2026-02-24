@@ -1,7 +1,9 @@
 package logmanager
 
 import (
+	"context"
 	"github.com/SALT-Indonesia/salt-pkg/logmanager/internal"
+	"github.com/SALT-Indonesia/salt-pkg/logmanager/otel"
 	"os"
 	"strings"
 	"time"
@@ -25,6 +27,11 @@ type Application struct {
 	exposeHeaders     []string
 	traceIDKey        string
 	splitLevelOutput  bool
+	// OpenTelemetry fields
+	otelEnabled          bool
+	otelExporterOptions  []OTelExporterOption
+	otelTracer           *otel.Tracer
+	otelExporter         *otel.Exporter
 }
 
 // Service returns the service name used within the Application instance.
@@ -126,6 +133,20 @@ func NewApplication(opts ...Option) *Application {
 	masker := internal.NewJSONMasker(ConvertMaskingConfigs(app.maskingConfigs))
 	app.logger = newStandardLogger(app.debug, app.logDir, app.splitLevelOutput, masker)
 
+	// Initialize OpenTelemetry exporter if enabled
+	if app.otelEnabled {
+		config := buildOTelConfig(app.service, app.environment, app.otelExporterOptions)
+		exporter, err := otel.NewExporter(config)
+		if err != nil {
+			// Log error but don't fail - fall back to no OTel
+			app.logger.WithError(err).Warn("Failed to initialize OpenTelemetry exporter, tracing disabled")
+			app.otelEnabled = false
+		} else {
+			app.otelExporter = exporter
+			app.otelTracer = exporter.Tracer()
+		}
+	}
+
 	return app
 }
 
@@ -166,6 +187,33 @@ func (app *Application) start(traceID string, name string, transactionType TxnTy
 		traceID = uuid.NewString()
 	}
 
+	// Create root OTel span if OTel is enabled
+	var rootSpan *otel.Span
+	if app.otelTracer != nil {
+		// Determine span kind based on transaction type
+		var spanKind otel.SpanKind
+		switch transactionType {
+		case TxnTypeHttp:
+			spanKind = otel.SpanKindServer
+		case TxnTypeConsumer:
+			spanKind = otel.SpanKindConsumer
+		case TxnTypeApi:
+			spanKind = otel.SpanKindClient
+		case TxnTypeDatabase:
+			spanKind = otel.SpanKindClient
+		case TxnTypeGrpc:
+			spanKind = otel.SpanKindClient
+		default:
+			spanKind = otel.SpanKindInternal
+		}
+
+		span, _ := app.otelTracer.Start(context.Background(), name, nil, spanKind, time.Now())
+		rootSpan = span
+
+		// Set custom trace ID as attribute for correlation
+		rootSpan.SetTracerID(traceID)
+	}
+
 	txn := &TxnRecord{
 		name:          name,
 		traceID:       traceID,
@@ -178,6 +226,7 @@ func (app *Application) start(traceID string, name string, transactionType TxnTy
 		exposeHeaders: app.exposeHeaders,
 		debug:         app.debug,
 		traceIDKey:    app.traceIDKey,
+		otelSpan:      rootSpan,
 	}
 
 	return &Transaction{
@@ -187,5 +236,6 @@ func (app *Application) start(traceID string, name string, transactionType TxnTy
 		tags:             app.tags,
 		traceIDKey:       app.traceIDKey,
 		traceIDHeaderKey: app.traceIDHeaderKey,
+		otelTracer:       app.otelTracer,
 	}
 }

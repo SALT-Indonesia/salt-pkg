@@ -3,6 +3,7 @@ package logmanager
 import (
 	"context"
 	"github.com/SALT-Indonesia/salt-pkg/logmanager/internal"
+	otellog "github.com/SALT-Indonesia/salt-pkg/logmanager/otel"
 	"net/http"
 )
 
@@ -25,6 +26,13 @@ func StartGrpcSegment(tx *Transaction, i GrpcSegment) *TxnRecord {
 
 	txn := tx.AddTxn(i.Url, TxnTypeGrpc)
 	txn.attrs.Value().Add(internal.AttributeRequestBody, i.Request)
+
+	// Set OTel span attributes for gRPC
+	if txn.otelSpan != nil && !txn.otelSpan.IsNil() {
+		attrs := otellog.GRPCAttributes("", i.Url)
+		txn.otelSpan.SetAttributes(attrs...)
+	}
+
 	return txn
 }
 
@@ -75,6 +83,13 @@ func StartApiSegment(i ApiSegment) *TxnRecord {
 
 	txn := tx.AddTxn(i.Name, TxnTypeApi)
 	txn.SetWebRequest(i.Request)
+
+	// Set OTel span attributes for HTTP client
+	if txn.otelSpan != nil && !txn.otelSpan.IsNil() && i.Request != nil {
+		attrs := otellog.HTTPClientAttributes(i.Request)
+		txn.otelSpan.SetAttributes(attrs...)
+	}
+
 	return txn
 }
 
@@ -108,6 +123,13 @@ func StartDatabaseSegment(tx *Transaction, i DatabaseSegment) *TxnRecord {
 	txn.attrs.Value().AddString(internal.AttributeDatabaseTable, i.Table)
 	txn.attrs.Value().AddString(internal.AttributeDatabaseQuery, i.Query)
 	txn.attrs.Value().AddString(internal.AttributeDatabaseHost, i.Host)
+
+	// Set OTel span attributes for database
+	if txn.otelSpan != nil && !txn.otelSpan.IsNil() {
+		attrs := otellog.DatabaseAttributes("sql", i.Table, i.Query, i.Host)
+		txn.otelSpan.SetAttributes(attrs...)
+	}
+
 	return txn
 }
 
