@@ -262,6 +262,38 @@ func TestCallGET(t *testing.T) {
 		assert.Nil(t, res)
 		assert.Error(t, err)
 	})
+
+	t.Run("with disable http2", func(t *testing.T) {
+		ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if got, want := r.Proto, "HTTP/1.1"; got != want {
+				t.Fatalf("expected protocol %s, got %s", want, got)
+			}
+
+			w.WriteHeader(http.StatusOK)
+			w.Header().Add("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{
+            "products": [
+                { "id": 1, "title": "Essence Mascara Lash Princess", "price": 9.99, "stock": 5 }
+            ],
+            "total": 1,
+            "skip": 0,
+            "limit": 10
+        }`))
+		}))
+		defer ts.Close()
+
+		res, err := clientmanager.Call[product.Response](
+			ctx,
+			"",
+			clientmanager.WithHost(ts.URL),
+			clientmanager.WithDisableHttp2(),
+			clientmanager.WithInsecure(),
+		)
+
+		assert.NoError(t, err)
+		assert.Equal(t, http.StatusOK, res.StatusCode)
+		assert.True(t, res.IsSuccess())
+	})
 }
 
 func TestCallPOST(t *testing.T) {
