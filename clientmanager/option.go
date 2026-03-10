@@ -218,3 +218,12 @@ func WithAuthNTLM(auth Auth) Option {
 		co.auth = auth
 	}
 }
+
+func WithDisabledHTTP2() Option {
+	return func(co *callOptions) {
+		if tr, ok := co.client.Transport.(*http.Transport); ok {
+			tr.ForceAttemptHTTP2 = false
+			tr.TLSNextProto = make(map[string]func(string, *tls.Conn) http.RoundTripper)
+		}
+	}
+}
