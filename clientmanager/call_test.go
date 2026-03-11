@@ -286,7 +286,7 @@ func TestCallGET(t *testing.T) {
 			ctx,
 			"",
 			clientmanager.WithHost(ts.URL),
-			clientmanager.WithDisableHttp2(),
+			clientmanager.WithDisabledHTTP2(),
 			clientmanager.WithInsecure(),
 		)
 

@@ -219,7 +219,7 @@ func WithAuthNTLM(auth Auth) Option {
 	}
 }
 
-func WithDisableHttp2() Option {
+func WithDisabledHTTP2() Option {
 	return func(co *callOptions) {
 		if tr, ok := co.client.Transport.(*http.Transport); ok {
 			tr.ForceAttemptHTTP2 = false
