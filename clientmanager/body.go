@@ -24,6 +24,45 @@ func stringify(v any) string {
 	}
 }
 
+// getMultipartFormBody creates multipart form body with files and values.
+// This function handles both files (with custom content types) and string form fields.
+func getMultipartFormBody(form MultipartForm) (*bytes.Buffer, string, error) {
+	body := new(bytes.Buffer)
+	writer := multipart.NewWriter(body)
+
+	// Add files with custom content types
+	for field, fileData := range form.Files {
+		// Create custom MIME header with Content-Disposition and Content-Type
+		h := make(map[string][]string)
+		h["Content-Disposition"] = []string{
+			fmt.Sprintf(`form-data; name="%s"; filename="%s"`, field, fileData.Filename),
+		}
+		h["Content-Type"] = []string{fileData.ContentType}
+
+		part, err := writer.CreatePart(h)
+		if err != nil {
+			return nil, "", fmt.Errorf("failed to create form part for field %s: %w", field, err)
+		}
+
+		if _, err := part.Write(fileData.Content); err != nil {
+			return nil, "", fmt.Errorf("failed to write file content for field %s: %w", field, err)
+		}
+	}
+
+	// Add string form fields
+	for field, value := range form.Values {
+		if err := writer.WriteField(field, value); err != nil {
+			return nil, "", fmt.Errorf("failed to write field %s: %w", field, err)
+		}
+	}
+
+	if err := writer.Close(); err != nil {
+		return nil, "", fmt.Errorf("failed to close multipart writer: %w", err)
+	}
+
+	return body, writer.FormDataContentType(), nil
+}
+
 func getFilesBody(files map[string]string, requestBody any) (*bytes.Buffer, string, error) {
 	body := new(bytes.Buffer)
 	writer := multipart.NewWriter(body)
