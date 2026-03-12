@@ -34,9 +34,127 @@ func WithInsecure() Option {
 	}
 }
 
+// WithFiles includes file paths in the request.
+//
+// Deprecated: Use WithMultipartForm() instead. WithMultipartForm() provides:
+//   - Support for in-memory file content (not just file paths on disk)
+//   - Custom content types (not just application/octet-stream)
+//   - Clean separation of files and form fields
+//
+// WithFiles is kept for backward compatibility only.
+//
+// Migration example:
+//
+//	// Before (old way)
+//	clientmanager.WithFiles(map[string]string{
+//	    "file": "/path/to/image.png",
+//	})
+//
+//	// After (new way)
+//	content, _ := os.ReadFile("/path/to/image.png")
+//	clientmanager.WithMultipartForm(clientmanager.MultipartForm{
+//	    Files: map[string]clientmanager.FilePart{
+//	        "file": {
+//	            Filename:    "image.png",
+//	            Content:     content,
+//	            ContentType: "image/png",
+//	        },
+//	    },
+//	})
 func WithFiles(files map[string]string) Option {
 	return func(co *callOptions) {
 		co.files = files
+	}
+}
+
+// FilePart represents a file in multipart form data with metadata.
+//
+// The Filename field is used in the Content-Disposition header.
+// The Content field contains the raw file content as bytes.
+// The ContentType field specifies the MIME type (e.g., "image/png", "application/pdf").
+type FilePart struct {
+	Filename    string // Name of the file (used in Content-Disposition header)
+	Content     []byte // Raw file content
+	ContentType string // MIME type (e.g., "image/png", "application/pdf")
+}
+
+// MultipartForm represents a complete multipart form with both files and values.
+//
+// This structure mirrors Go's multipart.Form structure, separating:
+//   - Files: Form fields with file data and metadata
+//   - Values: Simple string form fields
+//
+// Example usage:
+//
+//	clientmanager.WithMultipartForm(clientmanager.MultipartForm{
+//	    Files: map[string]clientmanager.FilePart{
+//	        "file": {
+//	            Filename:    "logo.png",
+//	            Content:     imageBytes,
+//	            ContentType: "image/png",
+//	        },
+//	    },
+//	    Values: map[string]string{
+//	        "alt":      "project logo",
+//	        "category": "images",
+//	    },
+//	})
+type MultipartForm struct {
+	Files  map[string]FilePart // Field name -> File data with metadata
+	Values map[string]string   // Field name -> String value
+}
+
+// WithMultipartForm includes multipart form data with both files and string values.
+//
+// Use this option when you need to upload files with custom content types
+// and/or include additional form fields in the same request.
+//
+// This is the recommended approach for multipart form data as it provides:
+//   - Support for in-memory file content (not just file paths on disk)
+//   - Custom content types per file (not just application/octet-stream)
+//   - Clean separation between files and form fields
+//   - Type-safe API for both files and values
+//
+// Example:
+//
+//	// Upload file with metadata
+//	clientmanager.WithMultipartForm(clientmanager.MultipartForm{
+//	    Files: map[string]clientmanager.FilePart{
+//	        "file": {
+//	            Filename:    "logo.png",
+//	            Content:     imageBytes,
+//	            ContentType: "image/png",
+//	        },
+//	    },
+//	    Values: map[string]string{
+//	        "alt":        "project logo",
+//	        "path":       "project_logos",
+//	        "filename":   "logo.png",
+//	    },
+//	})
+//
+//	// Multiple files with different content types
+//	clientmanager.WithMultipartForm(clientmanager.MultipartForm{
+//	    Files: map[string]clientmanager.FilePart{
+//	        "thumbnail": {
+//	            Filename:    "thumb.jpg",
+//	            Content:     thumbnailBytes,
+//	            ContentType: "image/jpeg",
+//	        },
+//	        "document": {
+//	            Filename:    "report.pdf",
+//	            Content:     pdfBytes,
+//	            ContentType: "application/pdf",
+//	        },
+//	    },
+//	    Values: map[string]string{
+//	        "title":       "Q4 Report",
+//	        "description": "Quarterly financial report",
+//	    },
+//	})
+func WithMultipartForm(form MultipartForm) Option {
+	return func(co *callOptions) {
+		co.multipartForm = form
 	}
 }
 

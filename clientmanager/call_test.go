@@ -541,6 +541,218 @@ func TestFileUpload(t *testing.T) {
 	})
 }
 
+func TestWithMultipartForm(t *testing.T) {
+	app := logmanager.NewApplication()
+	txn := app.Start("test", "cli", logmanager.TxnTypeOther)
+	ctx := txn.ToContext(context.Background())
+	defer txn.End()
+
+	// Create mock server that validates multipart form
+	var receivedContentType string
+	var receivedFiles []string
+	var receivedValues []string
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		receivedContentType = r.Header.Get("Content-Type")
+
+		// Parse multipart form
+		err := r.ParseMultipartForm(32 << 20) // 32MB max memory
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		// Collect files
+		for field := range r.MultipartForm.File {
+			receivedFiles = append(receivedFiles, field)
+		}
+
+		// Collect values
+		for field, values := range r.MultipartForm.Value {
+			for _, value := range values {
+				receivedValues = append(receivedValues, field+"="+value)
+			}
+		}
+
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer ts.Close()
+
+	t.Run("single file with custom content type", func(t *testing.T) {
+		receivedContentType = ""
+		receivedFiles = nil
+		receivedValues = nil
+
+		imageBytes := []byte("fake png data")
+
+		res, err := clientmanager.Call[any](
+			ctx,
+			"",
+			clientmanager.WithMethod(http.MethodPost),
+			clientmanager.WithHost(ts.URL),
+			clientmanager.WithMultipartForm(clientmanager.MultipartForm{
+				Files: map[string]clientmanager.FilePart{
+					"file": {
+						Filename:    "logo.png",
+						Content:     imageBytes,
+						ContentType: "image/png",
+					},
+				},
+			}),
+		)
+
+		assert.NoError(t, err)
+		assert.Equal(t, http.StatusOK, res.StatusCode)
+		assert.True(t, res.IsSuccess())
+		assert.Contains(t, receivedContentType, "multipart/form-data")
+		assert.Contains(t, receivedFiles, "file")
+	})
+
+	t.Run("multiple files with different content types", func(t *testing.T) {
+		receivedContentType = ""
+		receivedFiles = nil
+		receivedValues = nil
+
+		thumbnailBytes := []byte("fake jpg data")
+		pdfBytes := []byte("fake pdf data")
+
+		res, err := clientmanager.Call[any](
+			ctx,
+			"",
+			clientmanager.WithMethod(http.MethodPost),
+			clientmanager.WithHost(ts.URL),
+			clientmanager.WithMultipartForm(clientmanager.MultipartForm{
+				Files: map[string]clientmanager.FilePart{
+					"thumbnail": {
+						Filename:    "thumb.jpg",
+						Content:     thumbnailBytes,
+						ContentType: "image/jpeg",
+					},
+					"document": {
+						Filename:    "report.pdf",
+						Content:     pdfBytes,
+						ContentType: "application/pdf",
+					},
+				},
+			}),
+		)
+
+		assert.NoError(t, err)
+		assert.Equal(t, http.StatusOK, res.StatusCode)
+		assert.Contains(t, receivedFiles, "thumbnail")
+		assert.Contains(t, receivedFiles, "document")
+	})
+
+	t.Run("files and values together", func(t *testing.T) {
+		receivedContentType = ""
+		receivedFiles = nil
+		receivedValues = nil
+
+		imageBytes := []byte("fake png data")
+
+		res, err := clientmanager.Call[any](
+			ctx,
+			"",
+			clientmanager.WithMethod(http.MethodPost),
+			clientmanager.WithHost(ts.URL),
+			clientmanager.WithMultipartForm(clientmanager.MultipartForm{
+				Files: map[string]clientmanager.FilePart{
+					"file": {
+						Filename:    "logo.png",
+						Content:     imageBytes,
+						ContentType: "image/png",
+					},
+				},
+				Values: map[string]string{
+					"alt":        "project logo",
+					"category":   "images",
+					"visibility": "public",
+				},
+			}),
+		)
+
+		assert.NoError(t, err)
+		assert.Equal(t, http.StatusOK, res.StatusCode)
+		assert.Contains(t, receivedFiles, "file")
+		assert.Contains(t, receivedValues, "alt=project logo")
+		assert.Contains(t, receivedValues, "category=images")
+		assert.Contains(t, receivedValues, "visibility=public")
+	})
+
+	t.Run("only values (no files)", func(t *testing.T) {
+		receivedContentType = ""
+		receivedFiles = nil
+		receivedValues = nil
+
+		res, err := clientmanager.Call[any](
+			ctx,
+			"",
+			clientmanager.WithMethod(http.MethodPost),
+			clientmanager.WithHost(ts.URL),
+			clientmanager.WithMultipartForm(clientmanager.MultipartForm{
+				Values: map[string]string{
+					"name":  "John Doe",
+					"email": "john@example.com",
+				},
+			}),
+		)
+
+		assert.NoError(t, err)
+		assert.Equal(t, http.StatusOK, res.StatusCode)
+		assert.Contains(t, receivedValues, "name=John Doe")
+		assert.Contains(t, receivedValues, "email=john@example.com")
+	})
+
+	t.Run("special characters in values", func(t *testing.T) {
+		receivedContentType = ""
+		receivedFiles = nil
+		receivedValues = nil
+
+		res, err := clientmanager.Call[any](
+			ctx,
+			"",
+			clientmanager.WithMethod(http.MethodPost),
+			clientmanager.WithHost(ts.URL),
+			clientmanager.WithMultipartForm(clientmanager.MultipartForm{
+				Values: map[string]string{
+					"description": "Test with quotes \"and\" apostrophes'",
+					"unicode":     "Hello 世界 🌍",
+				},
+			}),
+		)
+
+		assert.NoError(t, err)
+		assert.Equal(t, http.StatusOK, res.StatusCode)
+	})
+
+	t.Run("empty files and values", func(t *testing.T) {
+		receivedContentType = ""
+		receivedFiles = nil
+		receivedValues = nil
+
+		// Create a different server for this test that accepts JSON
+		jsonTS := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			receivedContentType = r.Header.Get("Content-Type")
+			w.WriteHeader(http.StatusOK)
+		}))
+		defer jsonTS.Close()
+
+		res, err := clientmanager.Call[any](
+			ctx,
+			"",
+			clientmanager.WithMethod(http.MethodPost),
+			clientmanager.WithHost(jsonTS.URL),
+			clientmanager.WithMultipartForm(clientmanager.MultipartForm{}),
+		)
+
+		assert.NoError(t, err)
+		assert.Equal(t, http.StatusOK, res.StatusCode)
+		// Empty multipart form should fall back to JSON
+		assert.Contains(t, receivedContentType, "application/json")
+	})
+}
+
+
 func TestString(t *testing.T) {
 	app := logmanager.NewApplication()
 	txn := app.Start("test", "cli", logmanager.TxnTypeOther)

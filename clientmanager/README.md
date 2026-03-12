@@ -8,7 +8,8 @@ An HTTP client manager to request HTTP endpoints.
 |---------------------------|--------------------------------------------------------------|----------------------------------------------------------|
 | WithCertificates          | `WithCertificates(cert)`                                     | Add certificates.                                        |
 | WithRootCertificate       | `WithRootCertificate(rootCA)`                                | Add a root certificate.                                  |
-| WithFiles                 | `WithFiles(map[string]string{"image":"image.jpg"})`          | Include files, field name with its path, in the request. |
+| WithFiles                 | `WithFiles(map[string]string{"image":"image.jpg"})`          | **Deprecated**: Include files from disk paths. Use `WithMultipartForm()` instead. |
+| WithMultipartForm         | `WithMultipartForm(MultipartForm{...})`                      | Include multipart form data with files (in-memory) and values. |
 | WithFormURLEncoded        | `WithFormURLEncoded()`                                       | Send the request in URL-encoded form.                    |
 | WithHeaders               | `WithHeaders(map[string][]string{"X-Trace-ID": {"abc123"}})` | Include headers in the request.                          |
 | WithHost                  | `WithHost("https://httpbin.org")`                            | Set the host for the request. Optional.                  |
@@ -214,6 +215,101 @@ Here is a sample of a classic form, `salt-pkg/clientmanager/examples/classicform
 ### File Upload
 
 Here is a sample of file uploading, `salt-pkg/clientmanager/examples/fileupload/main.go`.
+
+#### Using WithMultipartForm (Recommended)
+
+The `WithMultipartForm` option provides enhanced support for multipart form data with both files and string values:
+
+```go
+// Upload file with metadata
+res, err := clientmanager.Call[Response](
+    context.Background(),
+    "https://api.example.com/upload",
+    clientmanager.WithMultipartForm(clientmanager.MultipartForm{
+        Files: map[string]clientmanager.FilePart{
+            "file": {
+                Filename:    "logo.png",
+                Content:     imageBytes,
+                ContentType: "image/png",
+            },
+        },
+        Values: map[string]string{
+            "alt":        "project logo",
+            "path":       "project_logos",
+            "filename":   "logo.png",
+        },
+    }),
+    clientmanager.WithMethod(http.MethodPost),
+)
+
+// Multiple files with different content types
+res, err := clientmanager.Call[Response](
+    context.Background(),
+    "https://api.example.com/media",
+    clientmanager.WithMultipartForm(clientmanager.MultipartForm{
+        Files: map[string]clientmanager.FilePart{
+            "thumbnail": {
+                Filename:    "thumb.jpg",
+                Content:     thumbnailBytes,
+                ContentType: "image/jpeg",
+            },
+            "document": {
+                Filename:    "report.pdf",
+                Content:     pdfBytes,
+                ContentType: "application/pdf",
+            },
+        },
+        Values: map[string]string{
+            "title":       "Q4 Report",
+            "description": "Quarterly financial report",
+        },
+    }),
+    clientmanager.WithMethod(http.MethodPost),
+)
+```
+
+**Benefits of `WithMultipartForm`:**
+- ✅ Support for in-memory file content (not just file paths on disk)
+- ✅ Custom content types per file (not just `application/octet-stream`)
+- ✅ Clean separation between files and form fields
+- ✅ Type-safe API for both files and values
+
+**Migration from `WithFiles`:**
+
+```go
+// Old way (deprecated)
+res, err := clientmanager.Call[Response](
+    context.Background(),
+    "https://api.example.com/upload",
+    clientmanager.WithFiles(map[string]string{
+        "file": "/path/to/image.png",
+    }),
+    clientmanager.WithRequestBody(struct{ Alt string }{
+        Alt: "logo",
+    }),
+    clientmanager.WithMethod(http.MethodPost),
+)
+
+// New way (recommended)
+content, _ := os.ReadFile("/path/to/image.png")
+res, err := clientmanager.Call[Response](
+    context.Background(),
+    "https://api.example.com/upload",
+    clientmanager.WithMultipartForm(clientmanager.MultipartForm{
+        Files: map[string]clientmanager.FilePart{
+            "file": {
+                Filename:    "image.png",
+                Content:     content,
+                ContentType: "image/png",
+            },
+        },
+        Values: map[string]string{
+            "alt": "logo",
+        },
+    }),
+    clientmanager.WithMethod(http.MethodPost),
+)
+```
 
 ## Validation
 

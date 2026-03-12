@@ -24,7 +24,8 @@ type callOptions struct {
 	headers          http.Header
 	method           string
 	isFormURLEncoded bool
-	files            map[string]string
+	files            map[string]string   // Keep for backward compatibility (deprecated)
+	multipartForm    MultipartForm        // Enhanced multipart support
 	requestBody      any
 	urlValues        url.Values
 }
@@ -57,6 +58,11 @@ func (c callOptions) getRequestBody() (io.Reader, string, error) {
 		err         error
 	)
 	switch {
+	case len(c.multipartForm.Files) > 0 || len(c.multipartForm.Values) > 0:
+		body, contentType, err = getMultipartFormBody(c.multipartForm)
+		if err != nil {
+			return nil, "", err
+		}
 	case len(c.files) > 0:
 		body, contentType, err = getFilesBody(c.files, c.requestBody)
 		if err != nil {
