@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/SALT-Indonesia/salt-pkg/clientmanager/examples/dummyjson/product"
+	"examples/clientmanager/dummyjson/product"
 )
 
 func main() {

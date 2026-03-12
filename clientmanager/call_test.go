@@ -14,15 +14,31 @@ import (
 	"time"
 
 	"github.com/SALT-Indonesia/salt-pkg/clientmanager"
-	"github.com/SALT-Indonesia/salt-pkg/clientmanager/examples/dummyjson/product"
 	"github.com/SALT-Indonesia/salt-pkg/logmanager"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/oauth2"
 )
 
+type product struct {
+	ID    uint64  `json:"id"`
+	Title string  `json:"title"`
+	Price float64 `json:"price"`
+	Stock uint64  `json:"stock"`
+}
+
+type request struct {
+	Title string  `json:"title"`
+	Price float64 `json:"price"`
+	Stock uint64  `json:"stock"`
+}
+
+type response struct {
+	Products []product `json:"products"`
+}
+
 var (
-	req = &product.Request{
+	req = &request{
 		Title: "Essence Mascara Lash Princess",
 		Price: 9.99,
 		Stock: 5,
@@ -67,7 +83,7 @@ func TestCallGET(t *testing.T) {
 		}))
 		defer ts.Close()
 
-		res, err := clientmanager.Call[product.Response](
+		res, err := clientmanager.Call[response](
 			ctx,
 			"",
 			clientmanager.WithHost(ts.URL),
@@ -111,7 +127,7 @@ func TestCallGET(t *testing.T) {
 		}))
 		defer ts.Close()
 
-		_, err := clientmanager.Call[product.Response](
+		_, err := clientmanager.Call[response](
 			ctx,
 			"",
 			clientmanager.WithHost(ts.URL),
@@ -140,7 +156,7 @@ func TestCallGET(t *testing.T) {
 		}))
 		defer ts.Close()
 
-		res, err := clientmanager.Call[product.Response](
+		res, err := clientmanager.Call[response](
 			ctx,
 			"",
 			clientmanager.WithHost(ts.URL),
@@ -172,7 +188,7 @@ func TestCallGET(t *testing.T) {
 		}))
 		defer ts.Close()
 
-		res, err := clientmanager.Call[product.Response](
+		res, err := clientmanager.Call[response](
 			ctx,
 			ts.URL,
 			clientmanager.WithInsecure(),
@@ -203,7 +219,7 @@ func TestCallGET(t *testing.T) {
 		}))
 		defer ts.Close()
 
-		res, err := clientmanager.Call[product.Response](
+		res, err := clientmanager.Call[response](
 			ctx,
 			"",
 			clientmanager.WithURLValues(url.Values{
@@ -237,7 +253,7 @@ func TestCallGET(t *testing.T) {
 		}))
 		defer ts.Close()
 
-		res, err := clientmanager.Call[product.Response](
+		res, err := clientmanager.Call[response](
 			ctx,
 			"",
 			clientmanager.WithHost(ts.URL),
@@ -254,13 +270,45 @@ func TestCallGET(t *testing.T) {
 		}))
 		defer ts.Close()
 
-		res, err := clientmanager.Call[product.Response](
+		res, err := clientmanager.Call[response](
 			context.Background(),
 			ts.URL,
 		)
 
 		assert.Nil(t, res)
 		assert.Error(t, err)
+	})
+
+	t.Run("with disable http2", func(t *testing.T) {
+		ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if got, want := r.Proto, "HTTP/1.1"; got != want {
+				t.Fatalf("expected protocol %s, got %s", want, got)
+			}
+
+			w.WriteHeader(http.StatusOK)
+			w.Header().Add("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{
+            "products": [
+                { "id": 1, "title": "Essence Mascara Lash Princess", "price": 9.99, "stock": 5 }
+            ],
+            "total": 1,
+            "skip": 0,
+            "limit": 10
+        }`))
+		}))
+		defer ts.Close()
+
+		res, err := clientmanager.Call[response](
+			ctx,
+			"",
+			clientmanager.WithHost(ts.URL),
+			clientmanager.WithDisabledHTTP2(),
+			clientmanager.WithInsecure(),
+		)
+
+		assert.NoError(t, err)
+		assert.Equal(t, http.StatusOK, res.StatusCode)
+		assert.True(t, res.IsSuccess())
 	})
 }
 
@@ -270,7 +318,7 @@ func TestCallPOST(t *testing.T) {
 		server     *httptest.Server
 		host       string
 		headers    http.Header
-		request    *product.Request
+		request    *request
 		statusCode int
 		isSuccess  bool
 	}{
@@ -302,7 +350,7 @@ func TestCallPOST(t *testing.T) {
 			server: httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusBadRequest)
 			})),
-			request:    &product.Request{},
+			request:    &request{},
 			statusCode: http.StatusBadRequest,
 		},
 		{
@@ -445,7 +493,7 @@ func TestFileUpload(t *testing.T) {
 	})
 
 	t.Run("with a request body", func(t *testing.T) {
-		req := &product.Request{
+		req := &request{
 			Title: "Essence Mascara Lash Princess",
 			Price: 9.99,
 			Stock: 5,
@@ -466,11 +514,11 @@ func TestFileUpload(t *testing.T) {
 
 	t.Run("with JSON sub-request body", func(t *testing.T) {
 		type request struct {
-			Product product.Request `json:"product"`
+			Product product `json:"product"`
 		}
 
 		req := &request{
-			Product: product.Request{
+			Product: product{
 				Title: "Essence Mascara Lash Princess",
 				Price: 9.99,
 				Stock: 5,

@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/SALT-Indonesia/salt-pkg/clientmanager"
-	"github.com/SALT-Indonesia/salt-pkg/clientmanager/examples/dummyjson/product"
 	"github.com/SALT-Indonesia/salt-pkg/logmanager"
 	"github.com/stretchr/testify/assert"
 )
@@ -30,7 +29,7 @@ func TestNew(t *testing.T) {
 	ctx := txn.ToContext(context.Background())
 	defer txn.End()
 
-	clientManager := clientmanager.New[product.Product](
+	clientManager := clientmanager.New[product](
 		clientmanager.WithHost(ts.URL),
 	)
 	res, err := clientManager.Call(ctx, "")
