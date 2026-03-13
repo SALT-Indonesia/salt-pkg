@@ -68,14 +68,16 @@ func (txn *TxnRecord) extractValues() map[string]interface{} {
 		values["tags"] = txn.tags
 	}
 
-	headers := internal.Header{
-		Data:           internal.ToMapString(txn.attrs.Value().Get(internal.AttributeRequestHeaders)),
-		AllowedHeaders: txn.exposeHeaders,
-		IsDebugMode:    txn.debug || txn.exposeAllHeader,
-	}.FilterHeaders()
+	if !txn.skipHeaders {
+		headers := internal.Header{
+			Data:           internal.ToMapString(txn.attrs.Value().Get(internal.AttributeRequestHeaders)),
+			AllowedHeaders: txn.exposeHeaders,
+			IsDebugMode:    txn.debug || txn.exposeAllHeader,
+		}.FilterHeaders()
 
-	if len(headers) > 0 {
-		values[internal.AttributeRequestHeaders] = headers
+		if len(headers) > 0 {
+			values[internal.AttributeRequestHeaders] = headers
+		}
 	}
 
 	if txn.attrs.Value().IsNotEmpty(internal.AttributeRequestQueryParam) {

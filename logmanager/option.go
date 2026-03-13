@@ -65,6 +65,14 @@ func WithTags(tags ...string) Option {
 	}
 }
 
+// WithSkipHeaders disables logging of request headers.
+// This is useful in production environments where header logging generates excessive log volume.
+func WithSkipHeaders() Option {
+	return func(app *Application) {
+		app.skipHeaders = true
+	}
+}
+
 // WithExposeHeaders configures the Application to expose specified headers in the response or request by setting exposeHeaders.
 func WithExposeHeaders(headers ...string) Option {
 	return func(app *Application) {

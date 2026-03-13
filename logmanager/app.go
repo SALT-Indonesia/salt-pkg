@@ -27,6 +27,7 @@ type Application struct {
 	exposeHeaders     []string
 	traceIDKey        string
 	splitLevelOutput  bool
+	skipHeaders       bool
 	// OpenTelemetry fields
 	otelEnabled          bool
 	otelExporterOptions  []OTelExporterOption
@@ -226,6 +227,7 @@ func (app *Application) start(traceID string, name string, transactionType TxnTy
 		exposeHeaders: app.exposeHeaders,
 		debug:         app.debug,
 		traceIDKey:    app.traceIDKey,
+		skipHeaders:   app.skipHeaders,
 		otelSpan:      rootSpan,
 	}
 

@@ -1,6 +1,12 @@
 # Changelog
 
 ## [Unreleased]
+- **Add `WithSkipHeaders()` option to disable request headers logging (#61)**
+  - New `WithSkipHeaders()` option that completely omits request headers from log output
+  - Reduces log volume in production environments where headers are not needed
+  - Add `skipHeaders` field to `Application` and `TxnRecord`
+  - Add `07-skip-headers` example demonstrating usage with Gin
+  - Add unit test for the new option
 
 ## [1.41.0] - 2026-02-12
 - **Fix nil pointer dereference when using transactions in async goroutines (#54)**
