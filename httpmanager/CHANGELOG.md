@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.16.8] - 2026-03-13
+
+### Changed
+- Updated logmanager dependency from v1.41.0 to v1.43.0
+  - Adds `WithSkipHeaders()` option to disable request headers logging
+  - Adds OpenTelemetry integration support
+
 ## [0.16.6] - 2026-02-12
 
 ### Changed
