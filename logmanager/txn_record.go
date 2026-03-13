@@ -23,6 +23,7 @@ type TxnRecord struct {
 	exposeHeaders             []string
 	traceIDKey                string
 	skipRequest, skipResponse bool
+	skipHeaders               bool
 	exposeAllHeader           bool
 	// OpenTelemetry span
 	otelSpan *otellog.Span

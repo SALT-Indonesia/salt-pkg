@@ -78,6 +78,15 @@ func TestWithTags(t *testing.T) {
 	}
 }
 
+func TestWithSkipHeaders(t *testing.T) {
+	app := logmanager.NewApplication(logmanager.WithSkipHeaders())
+	assert.NotNil(t, app)
+
+	txn := app.StartHttp("test-trace", "test")
+	assert.NotNil(t, txn)
+	txn.End()
+}
+
 func TestWithExposeHeaders(t *testing.T) {
 	tests := []struct {
 		name            string
