@@ -345,3 +345,11 @@ func WithDisabledHTTP2() Option {
 		}
 	}
 }
+
+func WithNoProxy() Option {
+	return func(co *callOptions) {
+		if tr, ok := co.client.Transport.(*http.Transport); ok {
+			tr.Proxy = nil
+		}
+	}
+}
