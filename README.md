@@ -64,3 +64,27 @@ go get github.com/SALT-Indonesia/salt-pkg/httpmanager
 # Install Log Manager
 go get github.com/SALT-Indonesia/salt-pkg/logmanager
 ```
+
+## Agent Skills
+
+This repository ships [agent skills](https://github.com/vercel-labs/skills) that teach
+AI coding agents (Claude Code, Cursor, Codex, and others) how to use these modules.
+Install them with the `npx skills` CLI:
+
+```bash
+# List and install available skills from this repo
+npx skills add SALT-Indonesia/salt-pkg
+
+# Install a specific skill only
+npx skills add SALT-Indonesia/salt-pkg/tree/main/skills/httpmanager
+npx skills add SALT-Indonesia/salt-pkg/tree/main/skills/logmanager
+```
+
+Available skills:
+
+| Skill | Covers |
+| --- | --- |
+| `salt-httpmanager` | Building type-safe HTTP servers and handlers with [HTTP Manager](./httpmanager/README.md) |
+| `salt-logmanager` | Structured logging, tracing, and data masking with [Log Manager](./logmanager/README.md) |
+
+Skills live under [`skills/`](./skills); each is a `SKILL.md` the agent loads on demand.
