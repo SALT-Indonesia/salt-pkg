@@ -76,6 +76,7 @@ Install them with the `npx skills` CLI:
 npx skills add SALT-Indonesia/salt-pkg
 
 # Install a specific skill only
+npx skills add SALT-Indonesia/salt-pkg/tree/main/skills/clientmanager
 npx skills add SALT-Indonesia/salt-pkg/tree/main/skills/httpmanager
 npx skills add SALT-Indonesia/salt-pkg/tree/main/skills/logmanager
 ```
@@ -84,6 +85,7 @@ Available skills:
 
 | Skill | Covers |
 | --- | --- |
+| `salt-clientmanager` | Type-safe outbound HTTP calls with auth, multipart uploads, and APM tracing via [Client Manager](./clientmanager/README.md) |
 | `salt-httpmanager` | Building type-safe HTTP servers and handlers with [HTTP Manager](./httpmanager/README.md) |
 | `salt-logmanager` | Structured logging, tracing, and data masking with [Log Manager](./logmanager/README.md) |
 
