@@ -191,6 +191,11 @@ func WithURLValues(urlValues url.Values) Option {
 func WithTimeout(timeout time.Duration) Option {
 	return func(co *callOptions) {
 		co.client.Timeout = timeout
+		if t, ok := co.client.Transport.(*http.Transport); ok {
+			if t.ResponseHeaderTimeout < timeout {
+				t.ResponseHeaderTimeout = timeout
+			}
+		}
 	}
 }
 
@@ -233,6 +238,14 @@ func WithExpectContinueTimeout(timeout time.Duration) Option {
 	return func(co *callOptions) {
 		if _, ok := co.client.Transport.(*http.Transport); ok {
 			co.client.Transport.(*http.Transport).ExpectContinueTimeout = timeout
+		}
+	}
+}
+
+func WithResponseHeaderTimeout(timeout time.Duration) Option {
+	return func(co *callOptions) {
+		if _, ok := co.client.Transport.(*http.Transport); ok {
+			co.client.Transport.(*http.Transport).ResponseHeaderTimeout = timeout
 		}
 	}
 }

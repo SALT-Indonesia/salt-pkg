@@ -65,6 +65,51 @@ func TestClient(t *testing.T) {
 	assert.Less(t, tunedDuration, 10*time.Second)
 }
 
+func TestTransportOptions(t *testing.T) {
+	t.Run("WithResponseHeaderTimeout sets transport field", func(t *testing.T) {
+		opts := &callOptions{client: newClient()}
+		WithResponseHeaderTimeout(30 * time.Second)(opts)
+
+		tr, ok := opts.client.Transport.(*http.Transport)
+		assert.True(t, ok)
+		assert.Equal(t, 30*time.Second, tr.ResponseHeaderTimeout)
+	})
+
+	t.Run("WithTimeout raises ResponseHeaderTimeout when shorter", func(t *testing.T) {
+		opts := &callOptions{client: newClient()}
+		// Default ResponseHeaderTimeout is 5s, setting a 120s timeout should raise it
+		WithTimeout(120 * time.Second)(opts)
+
+		tr, ok := opts.client.Transport.(*http.Transport)
+		assert.True(t, ok)
+		assert.Equal(t, 120*time.Second, tr.ResponseHeaderTimeout)
+		assert.Equal(t, 120*time.Second, opts.client.Timeout)
+	})
+
+	t.Run("WithTimeout does not lower ResponseHeaderTimeout", func(t *testing.T) {
+		opts := &callOptions{client: newClient()}
+		// First set a generous header timeout
+		WithResponseHeaderTimeout(60 * time.Second)(opts)
+		// Then set a shorter overall timeout — header timeout should stay at 60s
+		WithTimeout(10 * time.Second)(opts)
+
+		tr, ok := opts.client.Transport.(*http.Transport)
+		assert.True(t, ok)
+		assert.Equal(t, 60*time.Second, tr.ResponseHeaderTimeout)
+		assert.Equal(t, 10*time.Second, opts.client.Timeout)
+	})
+
+	t.Run("WithTimeout does not change ResponseHeaderTimeout when timeout is below default", func(t *testing.T) {
+		opts := &callOptions{client: newClient()}
+		// Setting a 3s timeout should not affect the 5s default header timeout
+		WithTimeout(3 * time.Second)(opts)
+
+		tr, ok := opts.client.Transport.(*http.Transport)
+		assert.True(t, ok)
+		assert.Equal(t, 5*time.Second, tr.ResponseHeaderTimeout)
+	})
+}
+
 func BenchmarkClients(b *testing.B) {
 	ts := httptest.NewServer(testHandlerFunc)
 	defer ts.Close()

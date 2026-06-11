@@ -17,12 +17,13 @@ An HTTP client manager to request HTTP endpoints.
 | WithMethod                | `WithMethod(http.MethodPost)`                                | Set the HTTP Method for the request. Default is GET.     |
 | WithRequestBody           | `WithRequestBody(req)`                                       | Set the request body.                                    |
 | WithURLValues             | `WithURLValues(urlValues)`                                   | Set the request URL values.                              |
-| WithTimeout               | `WithTimeout(time.Second)`                                   | Set the default timeout.                                 |
+| WithTimeout               | `WithTimeout(time.Second)`                                   | Set the request timeout (also raises ResponseHeaderTimeout). |
 | WithProxy                 | `proxy, err := WithProxy("http://localhost:8080")`           | Set the proxy for the request.                           |
 | WithConnectionLimit       | `WithConnectionLimit(1000, 1000, 100)`                       | Set the connection limit.                                |
 | WithIdleConnTimeout       | `WithIdleConnTimeout(time.Minute)`                           | Set the idle connection timeout.                         |
 | WithTLSHandshakeTimeout   | `WithTLSHandshakeTimeout(5 * time.Second)`                   | Set the TLS handshake timeout.                           |
 | WithExpectContinueTimeout | `WithExpectContinueTimeout(5 * time.Second)`                 | Set the expect continue timeout.                         |
+| WithResponseHeaderTimeout | `WithResponseHeaderTimeout(30 * time.Second)`                | Set the response header timeout.                         |
 | WithDialContext           | `WithDialContext(10 * time.Second, time.Minute)`             | Set the dial context.                                    |
 | WithAuth                  | `WithAuth(AuthBasic("user123", "pass123"))`                  | Set the authorization for the request.                   |
 | WithAuthDigest            | `WithAuthDigest("user123", "pass123")`                       | Set the digest auth for the request.                     |
