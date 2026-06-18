@@ -1,6 +1,13 @@
 # Changelog
 
-## [Unreleased]
+## [1.43.1] - 2026-06-18
+- **Fix data race / `concurrent map writes` panic on `Transaction.txnRecords` under concurrent fanout (#70)**
+  - `AddDatabase` wrote `txnRecords[name]` a second time outside the mutex, even though `AddTxnNow` already stores it under the lock
+  - When a handler fanned out across goroutines (parallel downstream calls), this caused a data race that could escalate to a fatal `concurrent map writes` panic
+  - Removed the redundant unlocked write so all map mutations go through the synchronized path in `AddTxnNow`
+  - Add high-traffic integration tests across all six integrations (`lmgin`, `lmgrpc`, `lmecho`, `lmgorilla`, `lmrabbitmq`, `lmresty`), each verifying all log types are emitted and probing concurrency under `-race`
+
+## [1.43.0] - 2026-03-13
 - **Add `WithSkipHeaders()` option to disable request headers logging (#61)**
   - New `WithSkipHeaders()` option that completely omits request headers from log output
   - Reduces log volume in production environments where headers are not needed
