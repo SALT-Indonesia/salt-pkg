@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.16.9] - 2026-06-18
+
+### Changed
+- Updated logmanager dependency from v1.43.0 to v1.43.1
+  - Fixes a data race / `concurrent map writes` panic on `Transaction.txnRecords` under concurrent fanout
+
 ## [0.16.8] - 2026-03-13
 
 ### Changed
