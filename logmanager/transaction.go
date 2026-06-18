@@ -101,9 +101,11 @@ func (t *Transaction) AddDatabase(name string) *TxnRecord {
 		return nil
 	}
 
-	s := t.AddTxn(name, TxnTypeDatabase)
-	t.txnRecords[name] = s
-	return s
+	// AddTxn (via AddTxnNow) already stores the record in txnRecords under
+	// the mutex. Writing it again here without the lock caused a data race
+	// (and a "concurrent map writes" panic) when handlers fan out across
+	// goroutines, so we rely on the synchronized write inside AddTxnNow.
+	return t.AddTxn(name, TxnTypeDatabase)
 }
 
 func (t *Transaction) TraceID() string {
