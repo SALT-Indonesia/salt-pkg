@@ -6,7 +6,7 @@ require (
 	github.com/IBM/sarama v1.46.0
 	github.com/SALT-Indonesia/salt-pkg/clientmanager v0.0.0
 	github.com/SALT-Indonesia/salt-pkg/httpmanager v0.12.0
-	github.com/SALT-Indonesia/salt-pkg/logmanager v1.43.1
+	github.com/SALT-Indonesia/salt-pkg/logmanager v1.44.0
 	github.com/gin-gonic/gin v1.10.1
 	github.com/go-resty/resty/v2 v2.16.5
 	github.com/golang-jwt/jwt/v5 v5.3.0
