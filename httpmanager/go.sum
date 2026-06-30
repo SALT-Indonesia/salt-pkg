@@ -1,5 +1,7 @@
 github.com/SALT-Indonesia/salt-pkg/logmanager v1.43.1 h1:r6tC5g3J2G62INK3vnFSJ0FZ8XbyTcaZOcA3tB9QmUk=
 github.com/SALT-Indonesia/salt-pkg/logmanager v1.43.1/go.mod h1:Y/MycoisUMyxYtI8+wyHS62h5ga6LgvdrOXCIZ7BrSA=
+github.com/SALT-Indonesia/salt-pkg/logmanager v1.44.0 h1:cUjNhpv/9wMEsTM91NdzLm+Z+xunN1I0ppgdOWSbp58=
+github.com/SALT-Indonesia/salt-pkg/logmanager v1.44.0/go.mod h1:Y/MycoisUMyxYtI8+wyHS62h5ga6LgvdrOXCIZ7BrSA=
 github.com/cenkalti/backoff/v5 v5.0.3 h1:ZN+IMa753KfX5hd8vVaMixjnqRZ3y8CuJKRKj1xcsSM=
 github.com/cenkalti/backoff/v5 v5.0.3/go.mod h1:rkhZdG3JZukswDf7f0cwqPNk4K0sa+F97BxZthm/crw=
 github.com/cespare/xxhash/v2 v2.3.0 h1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UFvs=
