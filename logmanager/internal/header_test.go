@@ -85,6 +85,63 @@ func TestExtractHeader(t *testing.T) {
 			},
 			expectedResult: map[string]string{},
 		},
+		{
+			name: "wildcard prefix matches canonicalized headers case-insensitively",
+			header: internal.Header{
+				// Go canonicalizes "CF-Connecting-IP" -> "Cf-Connecting-Ip", etc.
+				Data:           map[string]string{"Cf-Ray": "8abc", "Cf-Connecting-Ip": "1.2.3.4", "User-Agent": "Go-http-client"},
+				AllowedHeaders: []string{"CF-*"},
+				IsDebugMode:    false,
+			},
+			expectedResult: map[string]string{"Cf-Ray": "8abc", "Cf-Connecting-Ip": "1.2.3.4"},
+		},
+		{
+			name: "mixed exact and wildcard exposed headers",
+			header: internal.Header{
+				Data: map[string]string{
+					"Cf-Ray":          "8abc",
+					"X-Amzn-Trace-Id": "Root=1-xyz",
+					"X-Amz-Cf-Id":     "zzz",
+					"Content-Type":    "application/json",
+					"User-Agent":      "Go-http-client",
+				},
+				AllowedHeaders: []string{"CF-*", "X-Amzn-*", "X-Amz-Cf-*", "Content-Type"},
+				IsDebugMode:    false,
+			},
+			expectedResult: map[string]string{
+				"Cf-Ray":          "8abc",
+				"X-Amzn-Trace-Id": "Root=1-xyz",
+				"X-Amz-Cf-Id":     "zzz",
+				"Content-Type":    "application/json",
+			},
+		},
+		{
+			name: "wildcard returns all headers in debug mode",
+			header: internal.Header{
+				Data:           map[string]string{"Cf-Ray": "8abc", "User-Agent": "Go-http-client"},
+				AllowedHeaders: []string{"CF-*"},
+				IsDebugMode:    true,
+			},
+			expectedResult: map[string]string{"Cf-Ray": "8abc", "User-Agent": "Go-http-client"},
+		},
+		{
+			name: "bare star wildcard exposes everything",
+			header: internal.Header{
+				Data:           map[string]string{"Cf-Ray": "8abc", "User-Agent": "Go-http-client"},
+				AllowedHeaders: []string{"*"},
+				IsDebugMode:    false,
+			},
+			expectedResult: map[string]string{"Cf-Ray": "8abc", "User-Agent": "Go-http-client"},
+		},
+		{
+			name: "wildcard with no matching headers yields empty map",
+			header: internal.Header{
+				Data:           map[string]string{"User-Agent": "Go-http-client", "Host": "example.com"},
+				AllowedHeaders: []string{"CF-*"},
+				IsDebugMode:    false,
+			},
+			expectedResult: map[string]string{},
+		},
 	}
 
 	for _, tt := range tests {

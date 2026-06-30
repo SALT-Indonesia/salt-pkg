@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.44.0] - 2026-06-30
+- **Add wildcard/prefix support to `WithExposeHeaders` (e.g. `CF-*`)**
+  - An entry ending in `*` is now treated as a prefix, so a single config value like `"CF-*"` exposes every header sharing that prefix (e.g. `CF-Ray`, `CF-Connecting-IP`) instead of enumerating each header by exact name
+  - Prefix matching is case-insensitive, handling Go's header canonicalization (`CF-Connecting-IP` → `Cf-Connecting-Ip`); a bare `"*"` exposes all headers
+  - Exact (non-`*`) entries keep their existing behavior — fully backward-compatible
+  - Works in production (`debug=false`) and flows to both inbound HTTP logs and outbound resty/API logs via the existing `exposeHeaders` propagation; only `internal.Header.FilterHeaders()` changed
+  - Add `08-expose-header-prefixes` example: a Gin server in production mode logging Cloudflare/CloudFront headers by prefix
+  - Add unit tests for wildcard matching (case-insensitivity, mixed exact + wildcard, debug mode, bare `*`, no-match)
+
 ## [1.43.1] - 2026-06-18
 - **Fix data race / `concurrent map writes` panic on `Transaction.txnRecords` under concurrent fanout (#70)**
   - `AddDatabase` wrote `txnRecords[name]` a second time outside the mutex, even though `AddTxnNow` already stores it under the lock

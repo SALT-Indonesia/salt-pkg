@@ -49,7 +49,7 @@ type Application struct {
     contextKey      string              // Key for storing in context
     maskingConfigs  []MaskingConfig     // Field masking rules
     tags            map[string]string   // Custom tags
-    exposeHeaders   bool                // Header exposure control
+    exposeHeaders   bool                // Header exposure control (supports "CF-*" wildcard prefixes)
 }
 ```
 

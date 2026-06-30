@@ -42,7 +42,9 @@ app := logmanager.NewApplication(
 
 Common options: `WithService`, `WithAppName`, `WithEnvironment`, `WithDebug`,
 `WithLogDir`, `WithSplitLevelOutput`, `WithTags`, `WithMaskingConfig`,
-`WithExposeHeaders`, `WithSkipHeaders`, `WithTraceIDKey` / `WithTraceIDHeaderKey`
+`WithExposeHeaders` (accepts exact names or trailing-`*` wildcard prefixes such
+as `"CF-*"`, matched case-insensitively), `WithSkipHeaders`, `WithTraceIDKey` /
+`WithTraceIDHeaderKey`
 / `WithTraceIDContextKey`, and `WithOpenTelemetry(WithOTelEndpoint(...), ...)`.
 
 ## Wire up middleware

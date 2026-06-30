@@ -21,6 +21,8 @@ examples/logmanager/
 │   ├── content-types/    # Content type variations
 │   ├── query-headers/    # Query params & headers
 │   └── advanced/         # File uploads, streaming
+├── 07-skip-headers/      # Disable request header logging
+├── 08-expose-header-prefixes/ # Expose headers by wildcard prefix (CF-*, X-Amz-Cf-*)
 └── shared/               # Shared utilities
     ├── models/           # Common data models
     └── config/           # Configuration helpers
@@ -58,6 +60,10 @@ cd 06-http-methods/methods && go run main.go       # :8080
 cd 06-http-methods/content-types && go run main.go # :8081
 cd 06-http-methods/query-headers && go run main.go # :8082
 cd 06-http-methods/advanced && go run main.go      # :8083
+
+# Header logging controls
+cd 07-skip-headers && go run main.go               # :8007
+cd 08-expose-header-prefixes && go run main.go     # :8008
 ```
 
 ## 📚 Examples Overview
@@ -76,6 +82,8 @@ cd 06-http-methods/advanced && go run main.go      # :8083
 | **Content Types** | `06-http-methods/content-types/` | All content type variations |
 | **Query & Headers** | `06-http-methods/query-headers/` | Parameters and headers |
 | **Advanced HTTP** | `06-http-methods/advanced/` | File uploads, streaming |
+| **Skip Headers** | `07-skip-headers/` | Disable request header logging |
+| **Expose Header Prefixes** | `08-expose-header-prefixes/` | Wildcard header exposure (`CF-*`) in production |
 
 ## 🔧 Features Demonstrated
 
