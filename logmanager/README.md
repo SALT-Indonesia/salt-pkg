@@ -38,7 +38,7 @@ LogManager is a comprehensive structured logging library for Go applications tha
 | time        | timestamp | Log timestamp in RFC3339 format (e.g., `2023-07-14T11:20:22+07:00`)                                                                             |
 | stack_trace | string    | Error stack trace with file and line information                                                                                                |
 | tags        | array     | Custom tags for categorization (e.g., `["order", "payment"]`)                                                                                   |
-| headers     | object    | HTTP headers (exposed selectively via `WithExposeHeaders` configuration)                                                                        |
+| headers     | object    | HTTP headers (exposed selectively via `WithExposeHeaders`, by exact name or `CF-*` wildcard prefix)                                             |
 
 ## Quick Start
 
@@ -421,13 +421,36 @@ app := logmanager.NewApplication(
 
 ### Header Exposure
 
-Selectively expose HTTP headers in logs:
+Selectively expose HTTP headers in logs. This works even in production
+(`debug=false`) — only the configured headers are logged:
 
 ```go
 app := logmanager.NewApplication(
-    logmanager.WithExposeHeaders("X-User-Id"), // Enable header exposure
+    logmanager.WithExposeHeaders("X-User-Id"), // Exact header name
 )
+```
 
+#### Wildcard (prefix) exposure
+
+An entry ending in `*` is treated as a prefix, so you can expose a whole family
+of infrastructure headers without listing each one. Matching is
+case-insensitive (Go canonicalizes `CF-Connecting-IP` → `Cf-Connecting-Ip`):
+
+```go
+app := logmanager.NewApplication(
+    logmanager.WithExposeHeaders(
+        "CF-*",        // all Cloudflare headers: CF-Ray, CF-Connecting-IP, ...
+        "X-Amz-Cf-*",  // CloudFront: X-Amz-Cf-Id, ...
+        "X-Amzn-*",    // X-Amzn-Trace-Id, ...
+        "X-Request-Id",// exact names still work alongside wildcards
+    ),
+)
+```
+
+A bare `"*"` exposes all headers. See
+`examples/logmanager/08-expose-header-prefixes`.
+
+```go
 // Or expose all headers for specific endpoints
 func handler(c *gin.Context) {
     transaction := logmanager.FromContext(c.Request.Context())

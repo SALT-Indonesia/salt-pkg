@@ -109,6 +109,11 @@ func TestWithExposeHeaders(t *testing.T) {
 			[]string{"Content-Type", "Authorization", "User-Agent"},
 		},
 		{
+			"WildcardPrefixHeaders",
+			[]string{"CF-*", "X-Amz-Cf-*", "X-Amzn-*"},
+			[]string{"CF-*", "X-Amz-Cf-*", "X-Amzn-*"},
+		},
+		{
 			"NilHeaders",
 			nil,
 			nil,
