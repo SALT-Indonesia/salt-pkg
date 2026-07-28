@@ -37,39 +37,49 @@ func getResponseBody[Response any](raw []byte, contentType string) (Response, er
 	return response, nil
 }
 
-func call[Response any](
-	ctx context.Context,
-	endpoint string,
-	cOptions callOptions,
-) (*BaseResponse[Response], error) {
+func execute(ctx context.Context, endpoint string, cOptions callOptions) (*http.Response, *logmanager.TxnRecord, error) {
 	if err := cOptions.validate(); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	req, err := cOptions.getRequest(ctx, endpoint)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	txn := logmanager.StartApiSegment(logmanager.ApiSegment{
 		Request: req,
 	})
 	if txn == nil {
-		return nil, errors.New("transaction from the request context cannot be empty")
+		return nil, nil, errors.New("transaction from the request context cannot be empty")
 	}
-	defer txn.End()
 
 	res, err := cOptions.client.Do(req) // #nosec G704 - This is a client library, SSRF protection is caller's responsibility
 	if err != nil {
 		txn.NoticeError(err)
+		txn.End()
 
+		return nil, nil, err
+	}
+
+	txn.SetResponse(res)
+
+	return res, txn, nil
+}
+
+func call[Response any](
+	ctx context.Context,
+	endpoint string,
+	cOptions callOptions,
+) (*BaseResponse[Response], error) {
+	res, txn, err := execute(ctx, endpoint, cOptions)
+	if err != nil {
 		return nil, err
 	}
+	defer txn.End()
 	defer func() {
 		_ = res.Body.Close()
 	}()
-
-	txn.SetResponse(res)
 
 	raw, _ := io.ReadAll(res.Body)
 

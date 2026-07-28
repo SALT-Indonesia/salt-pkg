@@ -1,7 +1,6 @@
 package clientmanager
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"io"
@@ -18,16 +17,18 @@ var (
 )
 
 type callOptions struct {
-	client           *http.Client
-	auth             Auth
-	host             string
-	headers          http.Header
-	method           string
-	isFormURLEncoded bool
-	files            map[string]string   // Keep for backward compatibility (deprecated)
-	multipartForm    MultipartForm        // Enhanced multipart support
-	requestBody      any
-	urlValues        url.Values
+	client                *http.Client
+	auth                  Auth
+	host                  string
+	headers               http.Header
+	method                string
+	isFormURLEncoded      bool
+	files                 map[string]string   // Keep for backward compatibility (deprecated)
+	multipartForm         MultipartForm        // Enhanced multipart support
+	requestBody           any
+	urlValues             url.Values
+	bodyReader            io.Reader
+	bodyReaderContentType string
 }
 
 func (c *callOptions) setOptions(options ...Option) {
@@ -52,34 +53,37 @@ func (c callOptions) validate() error {
 }
 
 func (c callOptions) getRequestBody() (io.Reader, string, error) {
-	var (
-		body        *bytes.Buffer
-		contentType string
-		err         error
-	)
 	switch {
+	case c.bodyReader != nil:
+		return c.bodyReader, c.bodyReaderContentType, nil
 	case len(c.multipartForm.Files) > 0 || len(c.multipartForm.Values) > 0:
-		body, contentType, err = getMultipartFormBody(c.multipartForm)
+		body, contentType, err := getMultipartFormBody(c.multipartForm)
 		if err != nil {
 			return nil, "", err
 		}
-	case len(c.files) > 0:
-		body, contentType, err = getFilesBody(c.files, c.requestBody)
-		if err != nil {
-			return nil, "", err
-		}
-	case c.isFormURLEncoded:
-		body, contentType = getFormURLEncodedBody(c.requestBody)
-	default:
-		body = getJSONBody(c.requestBody)
-		contentType = "application/json"
-	}
 
-	var reqBody io.Reader
-	if body != nil {
-		reqBody = body
+		return body, contentType, nil
+	case len(c.files) > 0:
+		body, contentType, err := getFilesBody(c.files, c.requestBody)
+		if err != nil {
+			return nil, "", err
+		}
+
+		return body, contentType, nil
+	case c.isFormURLEncoded:
+		body, contentType := getFormURLEncodedBody(c.requestBody)
+
+		return body, contentType, nil
+	default:
+		body := getJSONBody(c.requestBody)
+		contentType := "application/json"
+		var reqBody io.Reader
+		if body != nil {
+			reqBody = body
+		}
+
+		return reqBody, contentType, nil
 	}
-	return reqBody, contentType, err
 }
 
 func (c callOptions) addURLValues() string {

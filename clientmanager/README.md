@@ -15,7 +15,8 @@ An HTTP client manager to request HTTP endpoints.
 | WithHost                  | `WithHost("https://httpbin.org")`                            | Set the host for the request. Optional.                  |
 | WithInsecure              | `WithInsecure()`                                             | Allow the request to an insecure host.                   |
 | WithMethod                | `WithMethod(http.MethodPost)`                                | Set the HTTP Method for the request. Default is GET.     |
-| WithRequestBody           | `WithRequestBody(req)`                                       | Set the request body.                                    |
+| WithRequestBody           | `WithRequestBody(req)`                                       | Set the request body (serialised as JSON).               |
+| WithBodyReader            | `WithBodyReader(reader, "text/plain")`                       | Set a raw `io.Reader` as the request body with a custom Content-Type. Takes precedence over `WithRequestBody`. |
 | WithURLValues             | `WithURLValues(urlValues)`                                   | Set the request URL values.                              |
 | WithTimeout               | `WithTimeout(time.Second)`                                   | Set the request timeout (also raises ResponseHeaderTimeout). |
 | WithProxy                 | `proxy, err := WithProxy("http://localhost:8080")`           | Set the proxy for the request.                           |
@@ -311,6 +312,72 @@ res, err := clientmanager.Call[Response](
     clientmanager.WithMethod(http.MethodPost),
 )
 ```
+
+### Streaming
+
+Use `CallStream` when you need to consume the response body as a raw byte stream without buffering or decoding — for example, SSE (Server-Sent Events), chunked transfer, or proxy-passthrough:
+
+```go
+streamResp, err := clientmanager.CallStream(
+    ctx,
+    "https://api.example.com/events",
+    clientmanager.WithMethod(http.MethodGet),
+)
+if err != nil {
+    log.Fatal(err)
+}
+defer streamResp.Close() // MUST call Close to release resources
+
+// Read the raw streaming body (e.g., SSE line scanner)
+scanner := bufio.NewScanner(streamResp.Body)
+for scanner.Scan() {
+    line := scanner.Text()
+    if strings.HasPrefix(line, "data: ") {
+        chunk := strings.TrimPrefix(line, "data: ")
+        fmt.Println("Received:", chunk)
+    }
+}
+```
+
+**Important:** `CallStream` does NOT buffer the body. The caller MUST call `defer streamResp.Close()` to end the logmanager ApiSegment and close the underlying body. Failure to do so leaks resources.
+
+### Raw Bytes
+
+Use `CallBytes` when you need the full response body as raw bytes without JSON or XML deserialisation:
+
+```go
+res, err := clientmanager.CallBytes(
+    ctx,
+    "https://example.com/image.png",
+)
+if err != nil {
+    log.Fatal(err)
+}
+fmt.Println("Content-Type:", res.StatusCode)
+fmt.Println("Size:", len(res.Body))
+
+// Use http.DetectContentType for MIME detection
+contentType := http.DetectContentType(res.Body)
+```
+
+`CallBytes` also works for error responses: non-2xx status codes return the raw error body.
+
+### Raw Request Body
+
+Use `WithBodyReader` when you need to send a pre-serialised body (for example, forwarding a request in a proxy):
+
+```go
+res, err := clientmanager.Call[any](
+    ctx, "https://api.example.com/proxy",
+    clientmanager.WithMethod(http.MethodPost),
+    clientmanager.WithBodyReader(
+        strings.NewReader(`{"forwarded":true}`),
+        "application/json",
+    ),
+)
+```
+
+`WithBodyReader` takes precedence over `WithRequestBody`, `WithMultipartForm`, and `WithFormURLEncoded`.
 
 ## Validation
 

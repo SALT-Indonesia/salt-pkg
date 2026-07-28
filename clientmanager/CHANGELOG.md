@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.9.0] - 2026-07-28
+
+### Added
+- `CallStream(ctx, endpoint, options...) (*StreamResponse, error)` — sends a request and returns
+  the raw response body as an `io.ReadCloser` without buffering or decoding. Use this for SSE
+  streaming, binary downloads, chunked responses, and proxy-passthrough patterns. The caller MUST
+  call `defer streamResp.Close()` to end the logmanager segment and release the body.
+- `CallBytes(ctx, endpoint, options...) (*BaseResponse[[]byte], error)` — sends a request and
+  returns the full response body as raw `[]byte` without JSON/XML decode. Use this for binary
+  file downloads and provider-specific response transformations where the shape is not JSON.
+- `WithBodyReader(body io.Reader, contentType string) Option` — sets a raw `io.Reader` as the
+  request body, bypassing `WithRequestBody` JSON marshalling. Takes precedence over all other
+  body-setting options. Required for proxy-style patterns where the body is already serialised.
+- `StreamResponse` type with `StatusCode`, `Header`, `Body io.ReadCloser`, `IsSuccess() bool`,
+  and `Close() error` (idempotent; ends the logmanager ApiSegment and closes the body).
+- `ClientManager.CallStream` and `ClientManager.CallBytes` methods for structured usage with
+  pre-configured clients.
+
 ## [0.8.0] - 2026-06-18
 
 ### Added

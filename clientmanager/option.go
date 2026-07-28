@@ -3,6 +3,7 @@ package clientmanager
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"io"
 	"net"
 	"net/http"
 	"net/url"
@@ -179,6 +180,26 @@ func WithMethod(method string) Option {
 func WithRequestBody(requestBody any) Option {
 	return func(co *callOptions) {
 		co.requestBody = requestBody
+	}
+}
+
+// WithBodyReader sets a raw io.Reader as the request body with the given
+// Content-Type. This bypasses the default JSON serialization used by
+// WithRequestBody, and takes precedence over all other body-setting options.
+//
+// Use this when you already have a serialised body (e.g. a bytes.Buffer,
+// a file, or a pipe), particularly in proxy or passthrough scenarios.
+//
+// Example:
+//
+//	clientmanager.WithBodyReader(
+//	    strings.NewReader(`{"custom":"body"}`),
+//	    "application/json",
+//	)
+func WithBodyReader(body io.Reader, contentType string) Option {
+	return func(co *callOptions) {
+		co.bodyReader = body
+		co.bodyReaderContentType = contentType
 	}
 }
 
