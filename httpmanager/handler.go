@@ -157,7 +157,7 @@ func checkCustomErrorV2(err error) (bool, int, interface{}) {
 	errValue := reflect.ValueOf(err)
 	
 	// Dereference pointer if necessary
-	if errValue.Kind() == reflect.Ptr {
+	if errValue.Kind() == reflect.Pointer {
 		errValue = errValue.Elem()
 	}
 	
@@ -200,7 +200,7 @@ func checkResponseSuccess(resp interface{}) (bool, int, interface{}) {
 	respValue := reflect.ValueOf(resp)
 
 	// Dereference pointer if necessary
-	if respValue.Kind() == reflect.Ptr {
+	if respValue.Kind() == reflect.Pointer {
 		respValue = respValue.Elem()
 	}
 
