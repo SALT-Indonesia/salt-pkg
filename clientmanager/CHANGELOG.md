@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.10.0] - 2026-08-11
+
+### Added
+- `WithDialerControl(control func(network, address string, c syscall.RawConn) error) Option` —
+  sets the dialer's Control callback for SSRF protection (e.g. rejecting connections to private
+  or reserved IP ranges before connecting). Unwraps `*digest.Transport`, `ntlmssp.Negotiator`,
+  `*oauth1.Transport`, and `*oauth2.Transport` to reach the underlying `*http.Transport`.
+  Composes with `WithDialContext`.
+- `WithMaxResponseBytes(max int64) Option` — limits the response body read by `Call` and
+  `CallBytes` via `io.LimitReader`. Bodies exceeding the limit are truncated at the limit.
+- `BaseResponse.Header http.Header` — exposes response headers so callers can inspect
+  `Content-Type` etc. without switching to `CallStream`.
+
+### Changed
+- `getMultipartFormBody` no longer returns an error (writes to `bytes.Buffer` never fail);
+  signature simplified to `(*bytes.Buffer, string)`.
+- `callBytes` now skips `io.ReadAll` errors for consistency with `call`.
+- 100% statement coverage achieved.
+
 ## [0.9.0] - 2026-07-28
 
 ### Added
