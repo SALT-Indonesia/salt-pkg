@@ -1,15 +1,19 @@
 package clientmanager_test
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"os"
+	"sync"
+	"syscall"
 	"testing"
 	"time"
 
@@ -1481,4 +1485,331 @@ func TestWithConnection(t *testing.T) {
 		assert.True(t, res.IsSuccess())
 		assert.NoError(t, err)
 	})
+}
+
+func TestWithDialerControl(t *testing.T) {
+	app := logmanager.NewApplication()
+	txn := app.Start("test", "cli", logmanager.TxnTypeOther)
+	ctx := txn.ToContext(context.Background())
+	defer txn.End()
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer ts.Close()
+
+	t.Run("control invoked during dial", func(t *testing.T) {
+		var mu sync.Mutex
+		calls := 0
+		control := func(_ string, address string, _ syscall.RawConn) error {
+			mu.Lock()
+			defer mu.Unlock()
+			calls++
+			assert.Contains(t, address, "127.0.0.1")
+			return nil
+		}
+
+		clientManager := clientmanager.New[any](clientmanager.WithDialerControl(control))
+		res, err := clientManager.Call(ctx, ts.URL)
+
+		assert.NotNil(t, res)
+		assert.True(t, res.IsSuccess())
+		assert.NoError(t, err)
+
+		mu.Lock()
+		defer mu.Unlock()
+		assert.Greater(t, calls, 0)
+	})
+
+	t.Run("control rejecting the dial", func(t *testing.T) {
+		control := func(_ string, _ string, _ syscall.RawConn) error {
+			return errors.New("connection blocked")
+		}
+
+		clientManager := clientmanager.New[any](clientmanager.WithDialerControl(control))
+		res, err := clientManager.Call(ctx, ts.URL)
+
+		assert.Nil(t, res)
+		assert.Error(t, err)
+	})
+
+	t.Run("composed with dial context", func(t *testing.T) {
+		var mu sync.Mutex
+		calls := 0
+		control := func(_ string, _ string, _ syscall.RawConn) error {
+			mu.Lock()
+			defer mu.Unlock()
+			calls++
+			return nil
+		}
+
+		clientManager := clientmanager.New[any](
+			clientmanager.WithDialContext(5*time.Second, time.Minute),
+			clientmanager.WithDialerControl(control),
+		)
+		res, err := clientManager.Call(ctx, ts.URL)
+
+		assert.NotNil(t, res)
+		assert.True(t, res.IsSuccess())
+		assert.NoError(t, err)
+
+		mu.Lock()
+		defer mu.Unlock()
+		assert.Greater(t, calls, 0)
+	})
+}
+
+func TestWithDialerControlComposedWithDigest(t *testing.T) {
+	app := logmanager.NewApplication()
+	txn := app.Start("test", "cli", logmanager.TxnTypeOther)
+	ctx := txn.ToContext(context.Background())
+	defer txn.End()
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer ts.Close()
+
+	var mu sync.Mutex
+	calls := 0
+	control := func(_ string, _ string, _ syscall.RawConn) error {
+		mu.Lock()
+		defer mu.Unlock()
+		calls++
+		return nil
+	}
+
+	clientManager := clientmanager.New[any](
+		clientmanager.WithAuthDigest("user123", "pass123"),
+		clientmanager.WithDialerControl(control),
+	)
+	res, err := clientManager.Call(ctx, ts.URL)
+
+	assert.NotNil(t, res)
+	assert.True(t, res.IsSuccess())
+	assert.NoError(t, err)
+
+	mu.Lock()
+	defer mu.Unlock()
+	assert.Greater(t, calls, 0)
+}
+
+func TestWithDialerControlComposedWithNTLM(t *testing.T) {
+	app := logmanager.NewApplication()
+	txn := app.Start("test", "cli", logmanager.TxnTypeOther)
+	ctx := txn.ToContext(context.Background())
+	defer txn.End()
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer ts.Close()
+
+	var mu sync.Mutex
+	calls := 0
+	control := func(_ string, _ string, _ syscall.RawConn) error {
+		mu.Lock()
+		defer mu.Unlock()
+		calls++
+		return nil
+	}
+
+	clientManager := clientmanager.New[any](
+		clientmanager.WithAuthNTLM(clientmanager.AuthBasic("user123", "pass123")),
+		clientmanager.WithDialerControl(control),
+	)
+	res, err := clientManager.Call(ctx, ts.URL)
+
+	assert.NotNil(t, res)
+	assert.True(t, res.IsSuccess())
+	assert.NoError(t, err)
+
+	mu.Lock()
+	defer mu.Unlock()
+	assert.Greater(t, calls, 0)
+}
+
+func TestWithDialerControlComposedWithOAuth1(t *testing.T) {
+	app := logmanager.NewApplication()
+	txn := app.Start("test", "cli", logmanager.TxnTypeOther)
+	ctx := txn.ToContext(context.Background())
+	defer txn.End()
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer ts.Close()
+
+	clientManager := clientmanager.New[any](
+		clientmanager.WithOAuth1(clientmanager.OAuth1Parameters{
+			ConsumerKey:    "your_consumer_key",
+			ConsumerSecret: "your_consumer_secret",
+			AccessToken:    "your_access_token",
+			TokenSecret:    "your_access_token_secret",
+		}),
+		clientmanager.WithDialerControl(func(_ string, _ string, _ syscall.RawConn) error {
+			return nil
+		}),
+	)
+	res, err := clientManager.Call(ctx, ts.URL)
+
+	assert.NotNil(t, res)
+	assert.True(t, res.IsSuccess())
+	assert.NoError(t, err)
+}
+
+func TestWithDialerControlComposedWithOAuth2(t *testing.T) {
+	app := logmanager.NewApplication()
+	txn := app.Start("test", "cli", logmanager.TxnTypeOther)
+	ctx := txn.ToContext(context.Background())
+	defer txn.End()
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer ts.Close()
+
+	oauth2, err := clientmanager.WithOAuth2(clientmanager.OAuth2Parameters[string]{
+		Auth: "mytoken",
+	})
+
+	assert.NotNil(t, oauth2)
+	assert.NoError(t, err)
+
+	clientManager := clientmanager.New[any](
+		oauth2,
+		clientmanager.WithDialerControl(func(_ string, _ string, _ syscall.RawConn) error {
+			return nil
+		}),
+	)
+	res, err := clientManager.Call(ctx, ts.URL)
+
+	assert.NotNil(t, res)
+	assert.True(t, res.IsSuccess())
+	assert.NoError(t, err)
+}
+
+func TestWithInsecureFreshTransport(t *testing.T) {
+	app := logmanager.NewApplication()
+	txn := app.Start("test", "cli", logmanager.TxnTypeOther)
+	ctx := txn.ToContext(context.Background())
+	defer txn.End()
+
+	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer ts.Close()
+
+	clientManager := clientmanager.New[any](clientmanager.WithInsecure())
+	res, err := clientManager.Call(ctx, ts.URL)
+
+	assert.NotNil(t, res)
+	assert.True(t, res.IsSuccess())
+	assert.NoError(t, err)
+}
+
+func TestWithCertificatesFreshTransport(t *testing.T) {
+	app := logmanager.NewApplication()
+	txn := app.Start("test", "cli", logmanager.TxnTypeOther)
+	ctx := txn.ToContext(context.Background())
+	defer txn.End()
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer ts.Close()
+
+	certificate := tls.Certificate{}
+	clientManager := clientmanager.New[any](clientmanager.WithCertificates(certificate))
+	res, err := clientManager.Call(ctx, ts.URL)
+
+	assert.NotNil(t, res)
+	assert.True(t, res.IsSuccess())
+	assert.NoError(t, err)
+}
+
+func TestWithRootCertificateFreshTransport(t *testing.T) {
+	app := logmanager.NewApplication()
+	txn := app.Start("test", "cli", logmanager.TxnTypeOther)
+	ctx := txn.ToContext(context.Background())
+	defer txn.End()
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer ts.Close()
+
+	rootCertificate := &x509.CertPool{}
+	clientManager := clientmanager.New[any](clientmanager.WithRootCertificate(rootCertificate))
+	res, err := clientManager.Call(ctx, ts.URL)
+
+	assert.NotNil(t, res)
+	assert.True(t, res.IsSuccess())
+	assert.NoError(t, err)
+}
+
+func TestWithMaxResponseBytes(t *testing.T) {
+	app := logmanager.NewApplication()
+	txn := app.Start("test", "cli", logmanager.TxnTypeOther)
+	ctx := txn.ToContext(context.Background())
+	defer txn.End()
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(bytes.Repeat([]byte("a"), 100))
+	}))
+	defer ts.Close()
+
+	t.Run("CallBytes with limit", func(t *testing.T) {
+		clientManager := clientmanager.New[any]()
+		res, err := clientManager.CallBytes(
+			ctx,
+			ts.URL,
+			clientmanager.WithMaxResponseBytes(10),
+		)
+
+		assert.NoError(t, err)
+		assert.Equal(t, 10, len(res.Body))
+		assert.Equal(t, 10, len(res.Raw))
+	})
+
+	t.Run("CallString with limit", func(t *testing.T) {
+		res, err := clientmanager.Call[string](
+			ctx,
+			ts.URL,
+			clientmanager.WithMaxResponseBytes(10),
+		)
+
+		assert.NoError(t, err)
+		assert.Len(t, res.Body, 10)
+	})
+
+	t.Run("Call without limit reads full body", func(t *testing.T) {
+		res, err := clientmanager.CallBytes(ctx, ts.URL)
+
+		assert.NoError(t, err)
+		assert.Equal(t, 100, len(res.Body))
+	})
+}
+
+func TestBaseResponseHeader(t *testing.T) {
+	app := logmanager.NewApplication()
+	txn := app.Start("test", "cli", logmanager.TxnTypeOther)
+	ctx := txn.ToContext(context.Background())
+	defer txn.End()
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("X-Custom", "custom-value")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"id":1}`))
+	}))
+	defer ts.Close()
+
+	res, err := clientmanager.Call[any](ctx, ts.URL)
+
+	assert.NoError(t, err)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
+	assert.Equal(t, "custom-value", res.Header.Get("X-Custom"))
+	assert.True(t, res.IsSuccess())
 }

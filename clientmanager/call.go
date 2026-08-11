@@ -81,7 +81,11 @@ func call[Response any](
 		_ = res.Body.Close()
 	}()
 
-	raw, _ := io.ReadAll(res.Body)
+	var reader io.Reader = res.Body
+	if cOptions.maxResponseBytes > 0 {
+		reader = io.LimitReader(res.Body, cOptions.maxResponseBytes)
+	}
+	raw, _ := io.ReadAll(reader)
 
 	response, err := getResponseBody[Response](raw, res.Header.Get("Content-Type"))
 	if err != nil {
@@ -92,6 +96,7 @@ func call[Response any](
 
 	return &BaseResponse[Response]{
 		StatusCode: res.StatusCode,
+		Header:     res.Header.Clone(),
 		Body:       response,
 		Raw:        raw,
 	}, nil
