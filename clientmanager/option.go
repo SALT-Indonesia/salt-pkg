@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"syscall"
 	"time"
 
 	"github.com/Azure/go-ntlmssp"
@@ -273,12 +274,34 @@ func WithResponseHeaderTimeout(timeout time.Duration) Option {
 
 func WithDialContext(timeout, keepAlive time.Duration) Option {
 	return func(co *callOptions) {
+		co.dialTimeout = timeout
+		co.dialKeepAlive = keepAlive
 		if _, ok := co.client.Transport.(*http.Transport); ok {
 			co.client.Transport.(*http.Transport).DialContext = (&net.Dialer{
 				Timeout:   timeout,
 				KeepAlive: keepAlive,
 			}).DialContext
 		}
+	}
+}
+
+// WithDialerControl sets a control function on the dialer, called after
+// resolving the address but before connecting. It is typically used for
+// SSRF protection: rejecting connections to private or reserved IP ranges.
+//
+// When combined with WithDialContext, the timeout and keep-alive values set
+// there are preserved. Used alone, the library defaults are applied.
+func WithDialerControl(control func(network, address string, c syscall.RawConn) error) Option {
+	return func(co *callOptions) {
+		co.dialerControl = control
+	}
+}
+
+// WithMaxResponseBytes limits the response body size read by Call and
+// CallBytes. Bodies larger than the limit are truncated at the limit.
+func WithMaxResponseBytes(max int64) Option {
+	return func(co *callOptions) {
+		co.maxResponseBytes = max
 	}
 }
 

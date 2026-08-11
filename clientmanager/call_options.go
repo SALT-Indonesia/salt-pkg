@@ -4,11 +4,18 @@ import (
 	"context"
 	"errors"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"sync"
+	"syscall"
+	"time"
 
+	"github.com/Azure/go-ntlmssp"
+	"github.com/dghubble/oauth1"
+	"github.com/icholy/digest"
 	validator "github.com/go-playground/validator/v10"
+	"golang.org/x/oauth2"
 )
 
 var (
@@ -29,11 +36,67 @@ type callOptions struct {
 	urlValues             url.Values
 	bodyReader            io.Reader
 	bodyReaderContentType string
+	dialerControl         func(network, address string, c syscall.RawConn) error
+	dialTimeout           time.Duration
+	dialKeepAlive         time.Duration
+	maxResponseBytes      int64
 }
 
 func (c *callOptions) setOptions(options ...Option) {
 	for _, option := range options {
 		option(c)
+	}
+	c.resolve()
+}
+
+// resolve applies deferred settings that depend on the combination of options.
+// Currently it rebuilds the transport dialer when a Control function is set.
+func (c *callOptions) resolve() {
+	if c.dialerControl == nil {
+		return
+	}
+	tr := c.baseTransport()
+	if tr == nil {
+		return
+	}
+	timeout := c.dialTimeout
+	if timeout <= 0 {
+		timeout = 2 * time.Second
+	}
+	keepAlive := c.dialKeepAlive
+	if keepAlive <= 0 {
+		keepAlive = 60 * time.Second
+	}
+	tr.DialContext = (&net.Dialer{
+		Timeout:   timeout,
+		KeepAlive: keepAlive,
+		DualStack: true,
+		Control:   c.dialerControl,
+	}).DialContext
+}
+
+// baseTransport walks through transport wrappers (digest, NTLM, OAuth1/2) to
+// find the underlying *http.Transport that owns the dialer.
+func (c *callOptions) baseTransport() *http.Transport {
+	tr := c.client.Transport
+	for {
+		switch t := tr.(type) {
+		case *http.Transport:
+			return t
+		case *digest.Transport:
+			tr = t.Transport
+			continue
+		case ntlmssp.Negotiator:
+			tr = t.RoundTripper
+			continue
+		case *oauth1.Transport:
+			tr = t.Base
+			continue
+		case *oauth2.Transport:
+			tr = t.Base
+			continue
+		}
+		return nil
 	}
 }
 
@@ -57,10 +120,7 @@ func (c callOptions) getRequestBody() (io.Reader, string, error) {
 	case c.bodyReader != nil:
 		return c.bodyReader, c.bodyReaderContentType, nil
 	case len(c.multipartForm.Files) > 0 || len(c.multipartForm.Values) > 0:
-		body, contentType, err := getMultipartFormBody(c.multipartForm)
-		if err != nil {
-			return nil, "", err
-		}
+		body, contentType := getMultipartFormBody(c.multipartForm)
 
 		return body, contentType, nil
 	case len(c.files) > 0:

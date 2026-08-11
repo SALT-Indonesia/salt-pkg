@@ -28,7 +28,7 @@ func TestCallStream(t *testing.T) {
 			assert.True(t, ok)
 			w.Header().Set("Content-Type", "text/event-stream")
 			w.WriteHeader(http.StatusOK)
-			for i := 0; i < 3; i++ {
+			for i := range 3 {
 				_, _ = fmt.Fprintf(w, "data: chunk %d\n\n", i)
 				flusher.Flush()
 			}
@@ -46,8 +46,8 @@ func TestCallStream(t *testing.T) {
 		scanner := bufio.NewScanner(streamResp.Body)
 		for scanner.Scan() {
 			line := scanner.Text()
-			if strings.HasPrefix(line, "data: ") {
-				chunks = append(chunks, strings.TrimPrefix(line, "data: "))
+			if after, found := strings.CutPrefix(line, "data: "); found {
+				chunks = append(chunks, after)
 			}
 		}
 		assert.NoError(t, scanner.Err())
@@ -115,6 +115,25 @@ func TestCallStreamCloseIdempotent(t *testing.T) {
 	// Both calls should succeed (no panic, no error from double-close)
 	assert.NoError(t, err1)
 	assert.NoError(t, err2)
+}
+
+func TestCallStreamExecuteError(t *testing.T) {
+	app := logmanager.NewApplication()
+	txn := app.Start("test", "cli", logmanager.TxnTypeOther)
+	ctx := txn.ToContext(context.Background())
+	defer txn.End()
+
+	t.Run("invalid endpoint", func(t *testing.T) {
+		res, err := clientmanager.CallStream(ctx, "://notfound")
+		assert.Nil(t, res)
+		assert.Error(t, err)
+	})
+
+	t.Run("unreachable host", func(t *testing.T) {
+		res, err := clientmanager.CallStream(ctx, "http://127.0.0.1:1")
+		assert.Nil(t, res)
+		assert.Error(t, err)
+	})
 }
 
 func TestCallBytes(t *testing.T) {
@@ -342,7 +361,7 @@ func TestCallStreamWithHost(t *testing.T) {
 		assert.True(t, ok)
 		w.Header().Set("Content-Type", "text/event-stream")
 		w.WriteHeader(http.StatusOK)
-		for i := 0; i < 2; i++ {
+		for i := range 2 {
 			_, _ = fmt.Fprintf(w, "event: test\ndata: item %d\n\n", i)
 			flusher.Flush()
 		}
@@ -385,3 +404,4 @@ func TestCallStreamEmptyBody(t *testing.T) {
 	body, _ := io.ReadAll(streamResp.Body)
 	assert.Empty(t, body)
 }
+

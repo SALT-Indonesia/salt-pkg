@@ -1,7 +1,10 @@
 package clientmanager
 
+import "net/http"
+
 type BaseResponse[T any] struct {
 	StatusCode int
+	Header     http.Header
 	Body       T
 	Raw        []byte
 }

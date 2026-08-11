@@ -30,15 +30,15 @@ func callBytes(ctx context.Context, endpoint string, cOptions callOptions) (*Bas
 		_ = res.Body.Close()
 	}()
 
-	raw, err := io.ReadAll(res.Body)
-	if err != nil {
-		txn.NoticeError(err)
-
-		return nil, err
+	var reader io.Reader = res.Body
+	if cOptions.maxResponseBytes > 0 {
+		reader = io.LimitReader(res.Body, cOptions.maxResponseBytes)
 	}
+	raw, _ := io.ReadAll(reader)
 
 	return &BaseResponse[[]byte]{
 		StatusCode: res.StatusCode,
+		Header:     res.Header.Clone(),
 		Body:       raw,
 		Raw:        raw,
 	}, nil
