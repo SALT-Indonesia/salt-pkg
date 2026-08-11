@@ -1,6 +1,6 @@
 module github.com/SALT-Indonesia/salt-pkg/clientmanager
 
-go 1.25.12
+go 1.26.0
 
 require (
 	github.com/Azure/go-ntlmssp v0.1.1

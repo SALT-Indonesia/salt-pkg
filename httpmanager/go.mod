@@ -1,6 +1,6 @@
 module github.com/SALT-Indonesia/salt-pkg/httpmanager
 
-go 1.25.0
+go 1.26.0
 
 require (
 	github.com/SALT-Indonesia/salt-pkg/logmanager v1.44.0
