@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.44.1] - 2026-09-02
+- **Fix HTTP redirects (301/302/303/308) misclassified as `internal server error` (#79)**
+  - `isResponseSuccess` only treated 2xx and `307 Temporary Redirect` as non-error, so any `301/302/303/308` response fell through `HasErrorInternalFromHttpStatusCode` and was logged at `level=error` with `msg="internal server error"`, even on a fully successful redirect
+  - Added a dedicated `isRedirectStatusCode` check (301/302/303/307/308) that both `HasErrorInternalFromHttpStatusCode` and `HasErrorBusinessFromHttpStatusCode` short-circuit on
+  - Verified against a real `lmgorilla`-backed server: redirect routes now log at `level=info` like any other successful response
+  - Also replaces the deprecated `reflect.Ptr` constant with `reflect.Pointer` in `mask.go` / `internal/mask.go`
+
 ## [1.44.0] - 2026-06-30
 - **Add wildcard/prefix support to `WithExposeHeaders` (e.g. `CF-*`)**
   - An entry ending in `*` is now treated as a prefix, so a single config value like `"CF-*"` exposes every header sharing that prefix (e.g. `CF-Ray`, `CF-Connecting-IP`) instead of enumerating each header by exact name
