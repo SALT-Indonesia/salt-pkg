@@ -70,7 +70,6 @@ func (c *callOptions) resolve() {
 	tr.DialContext = (&net.Dialer{
 		Timeout:   timeout,
 		KeepAlive: keepAlive,
-		DualStack: true,
 		Control:   c.dialerControl,
 	}).DialContext
 }
