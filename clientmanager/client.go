@@ -21,7 +21,6 @@ var (
 			DialContext: (&net.Dialer{
 				Timeout:   2 * time.Second,  // Faster failure for unreachable services
 				KeepAlive: 60 * time.Second, // Better for long-lived idle pools
-				DualStack: true,             // IPv4 + IPv6 if available
 			}).DialContext,
 		}
 	}

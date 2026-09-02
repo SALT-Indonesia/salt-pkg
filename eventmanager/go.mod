@@ -3,7 +3,7 @@ module github.com/SALT-Indonesia/salt-pkg/eventmanager
 go 1.25.0
 
 require (
-	github.com/SALT-Indonesia/salt-pkg/logmanager v1.44.0
+	github.com/SALT-Indonesia/salt-pkg/logmanager v1.44.1
 	github.com/go-playground/validator/v10 v10.27.0
 	github.com/google/uuid v1.6.0
 	github.com/joho/godotenv v1.5.1

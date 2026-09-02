@@ -85,7 +85,7 @@ func BindQueryParams(ctx context.Context, dst interface{}) error {
 
 	// Get the value and type of the destination
 	dstValue := reflect.ValueOf(dst)
-	if dstValue.Kind() != reflect.Ptr {
+	if dstValue.Kind() != reflect.Pointer {
 		return nil // Must be a pointer to struct
 	}
 
