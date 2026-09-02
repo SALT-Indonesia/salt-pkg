@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.10.1] - 2026-09-02
+
+### Changed
+- Updated logmanager dependency from v1.44.0 to v1.44.1
+  - Fixes HTTP redirects (301/302/303/308) being misclassified as `internal server error`
+
+### Fixed
+- Removed `net.Dialer.DualStack: true` from the default and custom dialers — the field has been a
+  no-op since Go 1.12 (Fast Fallback/Happy Eyeballs is enabled by default; it can only be disabled
+  via `FallbackDelay`), so this is a no-op cleanup with no change in dialing behavior
+
 ## [0.10.0] - 2026-08-11
 
 ### Added

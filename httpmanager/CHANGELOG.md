@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.16.11] - 2026-09-02
+
+### Changed
+- Updated logmanager dependency from v1.44.0 to v1.44.1
+  - Fixes HTTP redirects (301/302/303/308) being misclassified as `internal server error`
+
+### Fixed
+- Replaced deprecated `reflect.Ptr` with `reflect.Pointer` in `handler.go` and `query_param.go`
+
 ## [0.16.9] - 2026-06-18
 
 ### Changed
