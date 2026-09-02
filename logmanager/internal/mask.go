@@ -94,7 +94,7 @@ func (m *JSONMasker) shouldApplyStructTagMasking(data interface{}) bool {
 	t := reflect.TypeOf(data)
 
 	// Handle pointers
-	if t.Kind() == reflect.Ptr {
+	if t.Kind() == reflect.Pointer {
 		if v.IsNil() {
 			return false
 		}

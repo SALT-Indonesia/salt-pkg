@@ -79,7 +79,7 @@ func isStructOrStructPointer(data interface{}) bool {
 	}
 
 	// Handle pointer
-	if t.Kind() == reflect.Ptr {
+	if t.Kind() == reflect.Pointer {
 		t = t.Elem()
 	}
 
