@@ -27,7 +27,7 @@ var errorHttpStatusCodes = []int{
 }
 
 func HasErrorBusinessFromHttpStatusCode(statusCode int) bool {
-	if isResponseSuccess(statusCode) {
+	if isResponseSuccess(statusCode) || isRedirectStatusCode(statusCode) {
 		return false
 	}
 
@@ -35,7 +35,7 @@ func HasErrorBusinessFromHttpStatusCode(statusCode int) bool {
 }
 
 func HasErrorInternalFromHttpStatusCode(statusCode int) bool {
-	if isResponseSuccess(statusCode) {
+	if isResponseSuccess(statusCode) || isRedirectStatusCode(statusCode) {
 		return false
 	}
 
@@ -47,7 +47,16 @@ func HasErrorInternalFromHttpStatusCode(statusCode int) bool {
 }
 
 func isResponseSuccess(code int) bool {
-	return (code >= 200 && code <= 299) || code == http.StatusTemporaryRedirect
+	return code >= 200 && code <= 299
+}
+
+func isRedirectStatusCode(code int) bool {
+	switch code {
+	case http.StatusMovedPermanently, http.StatusFound, http.StatusSeeOther,
+		http.StatusTemporaryRedirect, http.StatusPermanentRedirect:
+		return true
+	}
+	return false
 }
 
 func isWarningStatusCode(code int) bool {
