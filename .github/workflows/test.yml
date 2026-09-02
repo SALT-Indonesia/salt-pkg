@@ -17,10 +17,10 @@ jobs:
       eventmanager: ${{ steps.filter.outputs.eventmanager }}
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
 
     - name: Check for changes
-      uses: dorny/paths-filter@v3
+      uses: dorny/paths-filter@v4
       id: filter
       with:
         filters: |
@@ -61,15 +61,15 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
 
     - name: Set up Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v7
       with:
-        go-version: '1.24'
+        go-version: '1.25.12'
 
     - name: Cache Go modules
-      uses: actions/cache@v4
+      uses: actions/cache@v6
       with:
         path: |
           ~/go/pkg/mod
@@ -82,7 +82,7 @@ jobs:
       run: go work vendor
 
     - name: Upload vendor directory
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: vendor
         path: vendor/
@@ -96,15 +96,15 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
 
     - name: Set up Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v7
       with:
-        go-version: '1.24'
+        go-version: '1.25.12'
 
     - name: Download vendor directory
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       with:
         name: vendor
         path: vendor/
@@ -113,7 +113,7 @@ jobs:
       run: go test -v -race -coverprofile=coverage-clientmanager.txt -covermode=atomic ./clientmanager/...
 
     - name: Upload coverage
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: coverage-clientmanager
         path: coverage-clientmanager.txt
@@ -127,15 +127,15 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
 
     - name: Set up Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v7
       with:
-        go-version: '1.24'
+        go-version: '1.25.12'
 
     - name: Download vendor directory
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       with:
         name: vendor
         path: vendor/
@@ -144,7 +144,7 @@ jobs:
       run: go test -v -race -coverprofile=coverage-httpmanager.txt -covermode=atomic ./httpmanager/...
 
     - name: Upload coverage
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: coverage-httpmanager
         path: coverage-httpmanager.txt
@@ -158,15 +158,15 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
 
     - name: Set up Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v7
       with:
-        go-version: '1.24'
+        go-version: '1.25.12'
 
     - name: Download vendor directory
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       with:
         name: vendor
         path: vendor/
@@ -175,7 +175,7 @@ jobs:
       run: go test -v -race -coverprofile=coverage-logmanager.txt -covermode=atomic ./logmanager/...
 
     - name: Upload coverage
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: coverage-logmanager
         path: coverage-logmanager.txt
@@ -189,15 +189,15 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
 
     - name: Set up Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v7
       with:
-        go-version: '1.24'
+        go-version: '1.25.12'
 
     - name: Download vendor directory
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       with:
         name: vendor
         path: vendor/
@@ -206,7 +206,7 @@ jobs:
       run: go test -v -race -coverprofile=coverage-eventmanager.txt -covermode=atomic ./eventmanager/...
 
     - name: Upload coverage
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: coverage-eventmanager
         path: coverage-eventmanager.txt
@@ -220,15 +220,15 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
 
     - name: Set up Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v7
       with:
-        go-version: '1.24'
+        go-version: '1.25.12'
 
     - name: Run golangci-lint
-      uses: golangci/golangci-lint-action@v8
+      uses: golangci/golangci-lint-action@v9
       with:
         version: latest
         working-directory: clientmanager
@@ -242,15 +242,15 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
 
     - name: Set up Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v7
       with:
-        go-version: '1.24'
+        go-version: '1.25.12'
 
     - name: Run golangci-lint
-      uses: golangci/golangci-lint-action@v8
+      uses: golangci/golangci-lint-action@v9
       with:
         version: latest
         working-directory: httpmanager
@@ -264,15 +264,15 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
 
     - name: Set up Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v7
       with:
-        go-version: '1.24'
+        go-version: '1.25.12'
 
     - name: Run golangci-lint
-      uses: golangci/golangci-lint-action@v8
+      uses: golangci/golangci-lint-action@v9
       with:
         version: latest
         working-directory: logmanager
@@ -286,15 +286,15 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
 
     - name: Set up Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v7
       with:
-        go-version: '1.24'
+        go-version: '1.25.12'
 
     - name: Run golangci-lint
-      uses: golangci/golangci-lint-action@v8
+      uses: golangci/golangci-lint-action@v9
       with:
         version: latest
         working-directory: eventmanager
@@ -313,12 +313,12 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
 
     - name: Set up Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v7
       with:
-        go-version: '1.24'
+        go-version: '1.25.12'
 
     - name: Install govulncheck
       run: go install golang.org/x/vuln/cmd/govulncheck@latest
@@ -340,12 +340,12 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
 
     - name: Set up Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v7
       with:
-        go-version: '1.24'
+        go-version: '1.25.12'
 
     - name: Install govulncheck
       run: go install golang.org/x/vuln/cmd/govulncheck@latest
@@ -367,12 +367,12 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
 
     - name: Set up Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v7
       with:
-        go-version: '1.24'
+        go-version: '1.25.12'
 
     - name: Install govulncheck
       run: go install golang.org/x/vuln/cmd/govulncheck@latest
@@ -394,12 +394,12 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
 
     - name: Set up Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v7
       with:
-        go-version: '1.24'
+        go-version: '1.25.12'
 
     - name: Install govulncheck
       run: go install golang.org/x/vuln/cmd/govulncheck@latest

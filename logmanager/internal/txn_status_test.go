@@ -43,6 +43,26 @@ func TestHasErrorInternalFromHttpStatusCode(t *testing.T) {
 			statusCode: http.StatusTemporaryRedirect,
 			expected:   false,
 		},
+		{
+			name:       "moved permanently status code",
+			statusCode: http.StatusMovedPermanently,
+			expected:   false,
+		},
+		{
+			name:       "found status code",
+			statusCode: http.StatusFound,
+			expected:   false,
+		},
+		{
+			name:       "see other status code",
+			statusCode: http.StatusSeeOther,
+			expected:   false,
+		},
+		{
+			name:       "permanent redirect status code",
+			statusCode: http.StatusPermanentRedirect,
+			expected:   false,
+		},
 	}
 
 	for _, tt := range tests {
@@ -92,6 +112,26 @@ func TestHasErrorBusinessFromHttpStatusCode(t *testing.T) {
 		{
 			name:       "temporary redirect status code",
 			statusCode: http.StatusTemporaryRedirect,
+			expected:   false,
+		},
+		{
+			name:       "moved permanently status code",
+			statusCode: http.StatusMovedPermanently,
+			expected:   false,
+		},
+		{
+			name:       "found status code",
+			statusCode: http.StatusFound,
+			expected:   false,
+		},
+		{
+			name:       "see other status code",
+			statusCode: http.StatusSeeOther,
+			expected:   false,
+		},
+		{
+			name:       "permanent redirect status code",
+			statusCode: http.StatusPermanentRedirect,
 			expected:   false,
 		},
 	}
