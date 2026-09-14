@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.10.2] - 2026-09-14
+
+### Changed
+- Updated logmanager dependency from v1.44.1 to v1.45.0
+  - Adds OTLP HTTP/Protobuf transport, TLS CA certificate, and `OTEL_*` environment variable support (#82)
+
 ## [0.10.1] - 2026-09-02
 
 ### Changed
