@@ -153,6 +153,51 @@ func TestSpanKinds(t *testing.T) {
 	}
 }
 
+// TestNewExporter_GRPCDefaultConstructsAndShutsDown tests that the default
+// gRPC exporter path constructs without blocking on a network dial and shuts
+// down cleanly.
+func TestNewExporter_GRPCDefaultConstructsAndShutsDown(t *testing.T) {
+	exporter, err := NewExporter(&ExporterConfig{
+		Endpoint:    "localhost:4317",
+		Insecure:    true,
+		ServiceName: "test-service",
+		Environment: "test",
+	})
+
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if !exporter.IsEnabled() {
+		t.Error("expected exporter to be enabled")
+	}
+	if err := exporter.Shutdown(context.Background()); err != nil {
+		t.Errorf("expected no error on shutdown, got %v", err)
+	}
+}
+
+// TestNewExporter_HTTPDefaultConstructsAndShutsDown tests that the
+// http/protobuf exporter path constructs without blocking on a network dial
+// and shuts down cleanly.
+func TestNewExporter_HTTPDefaultConstructsAndShutsDown(t *testing.T) {
+	exporter, err := NewExporter(&ExporterConfig{
+		Endpoint:    "localhost:4318",
+		Insecure:    true,
+		ServiceName: "test-service",
+		Environment: "test",
+		Protocol:    ProtocolHTTPProtobuf,
+	})
+
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if !exporter.IsEnabled() {
+		t.Error("expected exporter to be enabled")
+	}
+	if err := exporter.Shutdown(context.Background()); err != nil {
+		t.Errorf("expected no error on shutdown, got %v", err)
+	}
+}
+
 // TestExporterShutdown tests graceful shutdown
 func TestExporterShutdown(t *testing.T) {
 	exporter := NewNoopExporter()
