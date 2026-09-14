@@ -125,10 +125,13 @@ func WithSplitLevelOutput() Option {
 
 // otelExporterConfig holds the configuration for OpenTelemetry exporter
 type otelExporterConfig struct {
-	endpoint    string
-	insecure    bool
-	headers     map[string]string
-	serviceName string
+	endpoint        string
+	insecure        bool
+	headers         map[string]string
+	serviceName     string
+	protocol        string
+	certificatePath string
+	fromEnv         bool
 }
 
 // buildOTelConfig creates an otel.ExporterConfig from OTelExporterOption values
@@ -145,11 +148,14 @@ func buildOTelConfig(service, environment string, opts []OTelExporterOption) *ot
 	}
 
 	return &otel.ExporterConfig{
-		Endpoint:    cfg.endpoint,
-		Insecure:    cfg.insecure,
-		Headers:     cfg.headers,
-		ServiceName: cfg.serviceName,
-		Environment: environment,
+		Endpoint:        cfg.endpoint,
+		Insecure:        cfg.insecure,
+		Headers:         cfg.headers,
+		ServiceName:     cfg.serviceName,
+		Environment:     environment,
+		Protocol:        cfg.protocol,
+		CertificatePath: cfg.certificatePath,
+		FromEnv:         cfg.fromEnv,
 	}
 }
 
@@ -207,5 +213,38 @@ func WithOTelServiceName(name string) OTelExporterOption {
 func WithOTelInsecure() OTelExporterOption {
 	return func(cfg *otelExporterConfig) {
 		cfg.insecure = true
+	}
+}
+
+// WithOTelProtocol selects the OTLP transport protocol: "grpc" (default) or
+// "http/protobuf". If not set, the protocol is auto-detected from the
+// OTEL_EXPORTER_OTLP_PROTOCOL environment variable, then from the endpoint's
+// URL scheme, defaulting to "grpc".
+func WithOTelProtocol(protocol string) OTelExporterOption {
+	return func(cfg *otelExporterConfig) {
+		cfg.protocol = protocol
+	}
+}
+
+// WithOTelCertificate sets the path to a PEM-encoded CA certificate used to
+// verify the OTLP collector's TLS certificate. Setting this implies a secure
+// connection, overriding WithOTelInsecure.
+func WithOTelCertificate(caCertPath string) OTelExporterOption {
+	return func(cfg *otelExporterConfig) {
+		if caCertPath != "" {
+			cfg.certificatePath = caCertPath
+			cfg.insecure = false
+		}
+	}
+}
+
+// WithOTelFromEnv configures the OTel exporter purely from standard
+// OTEL_EXPORTER_OTLP_* environment variables (OTEL_EXPORTER_OTLP_ENDPOINT,
+// OTEL_EXPORTER_OTLP_PROTOCOL, OTEL_EXPORTER_OTLP_INSECURE,
+// OTEL_EXPORTER_OTLP_HEADERS, OTEL_EXPORTER_OTLP_CERTIFICATE), ignoring any
+// other WithOTel* options in the same WithOpenTelemetry call.
+func WithOTelFromEnv() OTelExporterOption {
+	return func(cfg *otelExporterConfig) {
+		cfg.fromEnv = true
 	}
 }

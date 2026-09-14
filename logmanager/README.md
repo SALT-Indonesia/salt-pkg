@@ -1157,6 +1157,9 @@ app := logmanager.NewApplication(
 | `WithOTelInsecure` | Disable TLS for OTLP connection | `false` |
 | `WithOTelHeaders` | Authentication headers for OTLP | `nil` |
 | `WithOTelServiceName` | Override service name in OTel | Uses `WithService()` value |
+| `WithOTelProtocol` | OTLP transport: `"grpc"` or `"http/protobuf"` | Auto-detected, falls back to `grpc` |
+| `WithOTelCertificate` | Path to a PEM CA certificate to verify the collector's TLS certificate | `""` (system roots) |
+| `WithOTelFromEnv` | Configure the exporter entirely from standard `OTEL_EXPORTER_OTLP_*` env vars | `false` |
 
 ### Supported Backends
 
@@ -1331,16 +1334,82 @@ app := logmanager.NewApplication(
 #### With TLS
 
 ```go
-// Note: Currently only insecure connections are supported
-// TLS support requires additional configuration
+// Omitting WithOTelInsecure() uses TLS with the system's default root CAs.
 app := logmanager.NewApplication(
     logmanager.WithService("my-service"),
     logmanager.WithOpenTelemetry(
         logmanager.WithOTelEndpoint("otel-collector:4317"),
-        // Remove WithOTelInsecure() to use TLS (when supported)
     ),
 )
 ```
+
+#### With a Custom TLS CA Certificate
+
+Use this when the collector's certificate is signed by an internal/enterprise
+CA that isn't in the system's trust store. This works for both the `grpc` and
+`http/protobuf` protocols and implies a secure connection (it overrides
+`WithOTelInsecure`).
+
+```go
+app := logmanager.NewApplication(
+    logmanager.WithService("my-service"),
+    logmanager.WithOpenTelemetry(
+        logmanager.WithOTelEndpoint("otel-collector.prod.internal:4317"),
+        logmanager.WithOTelCertificate("/opt/otel-collector/ca.crt"),
+    ),
+)
+```
+
+#### With OTLP HTTP/Protobuf Transport
+
+Some collectors (e.g. SigNoz, or an OTel Collector behind a load balancer)
+only expose the OTLP HTTP/Protobuf endpoint, typically on port `4318` rather
+than the gRPC default of `4317`. Set both the protocol and a matching
+endpoint:
+
+```go
+app := logmanager.NewApplication(
+    logmanager.WithService("my-service"),
+    logmanager.WithOpenTelemetry(
+        logmanager.WithOTelProtocol("http/protobuf"),
+        logmanager.WithOTelEndpoint("https://otel-collector.prod.internal:4318"),
+        logmanager.WithOTelCertificate("/opt/otel-collector/ca.crt"),
+    ),
+)
+```
+
+If `WithOTelProtocol` is omitted, the protocol is auto-detected from the
+`OTEL_EXPORTER_OTLP_PROTOCOL` environment variable, then from the endpoint's
+URL scheme (`https://`/`http://` implies `http/protobuf`), defaulting to
+`grpc` for backward compatibility.
+
+#### Fully Env-Driven Configuration
+
+`WithOTelFromEnv()` skips all other `WithOTel*` options and lets the exporter
+configure itself entirely from the standard OpenTelemetry environment
+variables — useful for platform teams that already set these via Kubernetes
+manifests or VM provisioning:
+
+```bash
+export OTEL_RESOURCE_ATTRIBUTES="service.name=VENA-BE-PREPROD,management.zone=VENA,deployment.environment=PREPROD,host.name=venak8stbspreapp1"
+export OTEL_EXPORTER_OTLP_ENDPOINT="https://10.54.59.51:4318"
+export OTEL_EXPORTER_OTLP_PROTOCOL="http/protobuf"
+export OTEL_EXPORTER_OTLP_CERTIFICATE="/opt/otel-collector/ca.crt"
+```
+
+```go
+app := logmanager.NewApplication(
+    logmanager.WithService("my-service"),
+    logmanager.WithOpenTelemetry(
+        logmanager.WithOTelFromEnv(),
+    ),
+)
+```
+
+Regardless of `WithOTelFromEnv()`, `OTEL_RESOURCE_ATTRIBUTES` is always parsed
+and merged into the OTel resource attributes (alongside `service.name` and
+`deployment.environment`), so custom enterprise attributes like
+`management.zone` or `host.name` are picked up automatically.
 
 #### Custom Service Name for OTel
 
