@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.45.0] - 2026-09-14
+- **Add OTLP HTTP/Protobuf transport, TLS CA certificate, and OTEL_\* environment variable support (#82)**
+  - Only `otlptracegrpc` (gRPC, port 4317) was supported; enterprise deployments (SigNoz, OTel Collector on Kubernetes/VMs) that only expose the OTLP HTTP/Protobuf endpoint (port 4318) had no way to connect
+  - Added an `otlptracehttp`-based exporter alongside the existing gRPC one, selectable via `WithOTelProtocol("grpc"|"http/protobuf")` or auto-detected from `OTEL_EXPORTER_OTLP_(TRACES_)PROTOCOL` / the endpoint's URL scheme, defaulting to `grpc` for backward compatibility
+  - Added `WithOTelCertificate(caCertPath)` to trust a custom CA for both transports, for collectors behind internal/enterprise TLS certificates
+  - Added `WithOTelFromEnv()` to configure the exporter purely from standard `OTEL_EXPORTER_OTLP_*` environment variables, delegating to the OTel SDK's own env-aware exporter construction
+  - `resource.New(...)` now always adds `resource.WithFromEnv()`, so `OTEL_RESOURCE_ATTRIBUTES` (e.g. `management.zone`, `host.name`) is parsed and merged automatically
+  - Fixed `otlptracegrpc.WithInsecure()` being applied unconditionally regardless of `ExporterConfig.Insecure`, which made the insecure/TLS option a no-op
+  - Fully backward compatible: existing `WithOpenTelemetry(WithOTelEndpoint(...), WithOTelInsecure())` grpc-only callers are unaffected
+
 ## [1.44.1] - 2026-09-02
 - **Fix HTTP redirects (301/302/303/308) misclassified as `internal server error` (#79)**
   - `isResponseSuccess` only treated 2xx and `307 Temporary Redirect` as non-error, so any `301/302/303/308` response fell through `HasErrorInternalFromHttpStatusCode` and was logged at `level=error` with `msg="internal server error"`, even on a fully successful redirect
