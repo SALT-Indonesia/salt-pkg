@@ -4,7 +4,7 @@ go 1.25.12
 
 require (
 	github.com/Azure/go-ntlmssp v0.1.1
-	github.com/SALT-Indonesia/salt-pkg/logmanager v1.44.1
+	github.com/SALT-Indonesia/salt-pkg/logmanager v1.45.0
 	github.com/aws/aws-sdk-go-v2 v1.38.2
 	github.com/aws/aws-sdk-go-v2/credentials v1.18.8
 	github.com/dghubble/oauth1 v0.7.3
@@ -38,6 +38,7 @@ require (
 	go.opentelemetry.io/otel v1.43.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.41.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.41.0 // indirect
+	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.41.0 // indirect
 	go.opentelemetry.io/otel/metric v1.43.0 // indirect
 	go.opentelemetry.io/otel/sdk v1.43.0 // indirect
 	go.opentelemetry.io/otel/trace v1.43.0 // indirect
