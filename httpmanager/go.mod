@@ -3,7 +3,7 @@ module github.com/SALT-Indonesia/salt-pkg/httpmanager
 go 1.25.0
 
 require (
-	github.com/SALT-Indonesia/salt-pkg/logmanager v1.44.1
+	github.com/SALT-Indonesia/salt-pkg/logmanager v1.45.0
 	github.com/gorilla/mux v1.8.1
 	github.com/stretchr/testify v1.11.1
 )
@@ -24,6 +24,7 @@ require (
 	go.opentelemetry.io/otel v1.43.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.41.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.41.0 // indirect
+	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.41.0 // indirect
 	go.opentelemetry.io/otel/metric v1.43.0 // indirect
 	go.opentelemetry.io/otel/sdk v1.43.0 // indirect
 	go.opentelemetry.io/otel/trace v1.43.0 // indirect
