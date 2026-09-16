@@ -79,10 +79,10 @@ Install them with the `npx skills` CLI:
 npx skills add SALT-Indonesia/salt-pkg
 
 # Install a specific skill only
-npx skills add SALT-Indonesia/salt-pkg/tree/main/skills/clientmanager
-npx skills add SALT-Indonesia/salt-pkg/tree/main/skills/httpmanager
-npx skills add SALT-Indonesia/salt-pkg/tree/main/skills/logmanager
-npx skills add SALT-Indonesia/salt-pkg/tree/main/skills/eventmanager
+npx skills add SALT-Indonesia/salt-pkg --skill salt-clientmanager
+npx skills add SALT-Indonesia/salt-pkg --skill salt-httpmanager
+npx skills add SALT-Indonesia/salt-pkg --skill salt-logmanager
+npx skills add SALT-Indonesia/salt-pkg --skill salt-eventmanager
 ```
 
 Available skills:
