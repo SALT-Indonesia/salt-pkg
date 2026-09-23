@@ -13,6 +13,12 @@ Welcome to the LogManager documentation! This directory contains comprehensive g
   - Extension points
   - Thread safety considerations
 
+- **[Distributed Tracing](DISTRIBUTED_TRACING.md)** - Join an inbound OpenTelemetry trace from another service
+  - The `trace_id` vs `otel_trace_id` distinction
+  - Reusing an existing `TracerProvider`
+  - Inbound/outbound HTTP and gRPC propagation
+  - Verifying a trace end to end
+
 ## Quick Links
 
 ### Getting Started

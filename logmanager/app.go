@@ -10,6 +10,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type Application struct {
@@ -33,6 +34,10 @@ type Application struct {
 	otelExporterOptions  []OTelExporterOption
 	otelTracer           *otel.Tracer
 	otelExporter         *otel.Exporter
+	// tracerProvider, when supplied through WithTracerProvider, replaces the
+	// exporter's own provider so spans are emitted through the host
+	// application's existing OpenTelemetry pipeline.
+	tracerProvider trace.TracerProvider
 }
 
 // Service returns the service name used within the Application instance.
@@ -148,6 +153,20 @@ func NewApplication(opts ...Option) *Application {
 		}
 	}
 
+	// A caller-supplied tracer provider takes precedence over the built-in
+	// exporter, so logmanager emits spans through the same provider the host
+	// application already uses and both share one trace.
+	if app.tracerProvider != nil {
+		app.otelTracer = otel.NewTracer(app.service, app.tracerProvider.Tracer(app.service), true)
+	}
+
+	// Tracing is enabled through one of the two paths above. Make sure a W3C
+	// trace context propagator is installed, otherwise Inject() writes nothing
+	// and trace context cannot cross service boundaries.
+	if app.otelTracer != nil {
+		otel.EnsureW3CPropagator()
+	}
+
 	return app
 }
 
@@ -162,6 +181,22 @@ func (app *Application) StartHttp(traceID string, name string) *Transaction {
 	return app.start(traceID, name, TxnTypeHttp)
 }
 
+// StartHttpWithContext behaves like StartHttp, but links the transaction's root
+// span to the OpenTelemetry span carried by ctx. The transaction therefore
+// joins an already-running distributed trace instead of starting a new one.
+//
+// Pass a context populated by extracting an inbound carrier, e.g.
+// otel.GetTextMapPropagator().Extract(ctx, carrier) for HTTP headers or gRPC
+// metadata. When ctx carries no valid span the behaviour is identical to
+// StartHttp.
+func (app *Application) StartHttpWithContext(ctx context.Context, traceID string, name string) *Transaction {
+	if nil == app {
+		return newEmptyTransaction()
+	}
+
+	return app.startWithContext(ctx, traceID, name, TxnTypeHttp)
+}
+
 // StartConsumer initializes a new consumer transaction with the specified trace ID.
 // It returns a pointer to a Transaction object representing the consumer transaction.
 // If the Application receiver is nil, it returns a default Transaction with new attributes.
@@ -174,6 +209,17 @@ func (app *Application) StartConsumer(traceID string) *Transaction {
 	return app.start(traceID, "consumer", TxnTypeConsumer)
 }
 
+// StartConsumerWithContext behaves like StartConsumer, but links the
+// transaction's root span to the OpenTelemetry span carried by ctx, so a
+// consumed message continues the producer's distributed trace.
+func (app *Application) StartConsumerWithContext(ctx context.Context, traceID string) *Transaction {
+	if nil == app {
+		return newEmptyTransaction()
+	}
+
+	return app.startWithContext(ctx, traceID, "consumer", TxnTypeConsumer)
+}
+
 // Start initializes a new transaction with the provided trace ID, name, and transaction type. Returns a pointer to Transaction.
 func (app *Application) Start(traceID string, name string, transactionType TxnType) *Transaction {
 	if nil == app {
@@ -183,7 +229,31 @@ func (app *Application) Start(traceID string, name string, transactionType TxnTy
 	return app.start(traceID, name, transactionType)
 }
 
+// StartWithContext behaves like Start, but links the transaction's root span to
+// the OpenTelemetry span carried by ctx so the transaction joins an
+// already-running distributed trace.
+func (app *Application) StartWithContext(ctx context.Context, traceID string, name string, transactionType TxnType) *Transaction {
+	if nil == app {
+		return newEmptyTransaction()
+	}
+
+	return app.startWithContext(ctx, traceID, name, transactionType)
+}
+
+// start is retained for backward compatibility and starts a root transaction
+// with no parent span.
 func (app *Application) start(traceID string, name string, transactionType TxnType) *Transaction {
+	return app.startWithContext(context.Background(), traceID, name, transactionType)
+}
+
+// startWithContext creates the root transaction. When ctx carries a valid
+// OpenTelemetry span context the created root span becomes its child, which is
+// what connects logmanager transactions to an inbound distributed trace.
+func (app *Application) startWithContext(ctx context.Context, traceID string, name string, transactionType TxnType) *Transaction {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
 	if traceID == "" {
 		traceID = uuid.NewString()
 	}
@@ -208,7 +278,7 @@ func (app *Application) start(traceID string, name string, transactionType TxnTy
 			spanKind = otel.SpanKindInternal
 		}
 
-		span, _ := app.otelTracer.Start(context.Background(), name, nil, spanKind, time.Now())
+		span, _ := app.otelTracer.Start(ctx, name, nil, spanKind, time.Now())
 		rootSpan = span
 
 		// Set custom trace ID as attribute for correlation

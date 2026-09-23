@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.46.0] - 2026-09-23
+- **Let `Application` transactions join an inbound distributed trace (W3C `traceparent` propagation)**
+  - The root span of every transaction was created with `context.Background()` and `parent=nil` hardcoded in `Application.start`, so a transaction could never become a child of a span arriving from an upstream service: two services with correctly propagated application-level `trace_id` still produced two unrelated `otel_trace_id`s and therefore two separate traces
+  - Added context-aware constructors `StartHttpWithContext`, `StartConsumerWithContext` and `StartWithContext`. The existing `StartHttp` / `StartConsumer` / `Start` keep their signature and behaviour and now simply delegate with `context.Background()`, so nothing breaks for current callers
+  - Added `WithTracerProvider(tp)`, which makes logmanager emit its spans through the host application's existing `TracerProvider` instead of building its own exporter. This is what allows the logmanager transaction and the application's own instrumentation to share one trace
+  - `Transaction.ToContext` now embeds the transaction's OTel span context in addition to the transaction itself, so downstream code can `Inject` the trace context into an outgoing carrier
+  - `lmgrpc` server interceptors now `Extract` the W3C `traceparent` from incoming gRPC metadata and hand it to the context-aware constructors; `lmgrpc` client interceptors `Inject` `traceparent` into the outgoing metadata, so the callee continues the same trace
+  - Added `otel.EnsureW3CPropagator()`, called as soon as tracing is enabled. The global OTel propagator defaults to a no-op, so `Inject` silently wrote nothing into outgoing carriers and trace context could not cross process boundaries at all. A propagator that is already configured (B3, Jaeger, ...) is left untouched
+  - `Span.SetTracerID` now also records the application-level trace ID as the `logmanager.trace_id` span attribute, making a log line and its span correlatable in the tracing backend. Previously the value was only stored in memory and never exported, so it was unreachable from the tracing UI
+  - Fully backward compatible: no existing signature changed, and callers that do not pass a context keep starting a new trace
+
 ## [1.45.0] - 2026-09-14
 - **Add OTLP HTTP/Protobuf transport, TLS CA certificate, and OTEL_\* environment variable support (#82)**
   - Only `otlptracegrpc` (gRPC, port 4317) was supported; enterprise deployments (SigNoz, OTel Collector on Kubernetes/VMs) that only expose the OTLP HTTP/Protobuf endpoint (port 4318) had no way to connect

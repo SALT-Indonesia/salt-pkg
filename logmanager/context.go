@@ -25,8 +25,20 @@ const (
 )
 
 // ToContext returns a new context with the current Transaction embedded, allowing it to be retrieved later.
+//
+// When the transaction owns an active OpenTelemetry span, that span is embedded
+// in the returned context too, so downstream code can Inject the trace context
+// into an outgoing carrier and keep the distributed trace connected.
 func (t *Transaction) ToContext(ctx context.Context) context.Context {
-	return context.WithValue(ctx, txnContextKey, t)
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	ctx = context.WithValue(ctx, txnContextKey, t)
+	if t != nil && t.TxnRecord != nil && t.otelSpan != nil && !t.otelSpan.IsNil() {
+		ctx = context.WithValue(t.otelSpan.Context(), txnContextKey, t)
+	}
+	return ctx
 }
 
 // FromContext retrieves a Transaction from the given context if present.
