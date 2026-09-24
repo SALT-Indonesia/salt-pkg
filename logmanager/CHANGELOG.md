@@ -1,3 +1,5 @@
+# Changelog
+
 ## [1.46.1] - 2026-09-24
 - **Fix `Transaction.ToContext` discarding the caller's context when OpenTelemetry is enabled**
   - With an OTel span attached, `ToContext(ctx)` built its result from the span's own context and dropped `ctx`. Values, deadline and cancellation of the context passed in were lost
@@ -7,8 +9,6 @@
   - Added regression tests: `trace_id` propagation across services with and without OpenTelemetry, and `ToContext` context preservation
   - Docs: `docs/DISTRIBUTED_TRACING.md` now documents `ToContext` semantics, `trace_id` propagation with and without OpenTelemetry, and a troubleshooting table; linked from `README.md`
   - Added runnable example `examples/logmanager/cmd/tracedemo` (HTTP -> gRPC -> gRPC, with a stub OTLP collector; modes: no OTel, `WithTracerProvider`, `WithOpenTelemetry`)
-
-# Changelog
 
 ## [1.46.0] - 2026-09-23
 - **Let `Application` transactions join an inbound distributed trace (W3C `traceparent` propagation)**
