@@ -5,6 +5,7 @@
   - Effect in `eventmanager`: a consumer context's cancellation no longer propagated to handlers
   - `ToContext` now keeps `ctx` and attaches the span to it via the new `otel.Span.ContextWithSpan`
   - Added regression tests: `trace_id` propagation across services with and without OpenTelemetry, and `ToContext` context preservation
+  - Docs: `docs/DISTRIBUTED_TRACING.md` now documents `ToContext` semantics, `trace_id` propagation with and without OpenTelemetry, and a troubleshooting table; linked from `README.md`
 
 # Changelog
 

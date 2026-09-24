@@ -85,6 +85,7 @@ func createUser(c *gin.Context) {
 - 🔧 [API Reference](docs/API_REFERENCE.md) - Complete API documentation
 - 🚀 [Migration Guide](docs/MIGRATION_GUIDE.md) - Migrating from other logging libraries
 - ❓ [Troubleshooting](docs/TROUBLESHOOTING.md) - Common issues and solutions
+- 🔗 [Distributed Tracing](docs/DISTRIBUTED_TRACING.md) - Join an inbound trace across services (W3C `traceparent`)
 
 ## Installation
 
@@ -1135,6 +1136,8 @@ When OpenTelemetry is enabled, each transaction creates a corresponding OpenTele
 - **Correlate logs with traces** using linked trace IDs
 - **Analyze performance** across service boundaries
 - **Monitor system health** with structured trace data
+
+To make a transaction continue a trace started by another service (HTTP, gRPC, consumers), see the [Distributed Tracing guide](docs/DISTRIBUTED_TRACING.md). The application-level `trace_id` propagates with or without OpenTelemetry enabled.
 
 ### Basic Configuration
 
