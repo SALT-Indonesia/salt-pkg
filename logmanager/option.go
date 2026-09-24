@@ -1,6 +1,9 @@
 package logmanager
 
-import "github.com/SALT-Indonesia/salt-pkg/logmanager/otel"
+import (
+	"github.com/SALT-Indonesia/salt-pkg/logmanager/otel"
+	"go.opentelemetry.io/otel/trace"
+)
 
 type Option func(*Application)
 
@@ -246,5 +249,30 @@ func WithOTelCertificate(caCertPath string) OTelExporterOption {
 func WithOTelFromEnv() OTelExporterOption {
 	return func(cfg *otelExporterConfig) {
 		cfg.fromEnv = true
+	}
+}
+
+// WithTracerProvider makes the Application reuse an existing OpenTelemetry
+// TracerProvider instead of building its own exporter from the WithOTel*
+// options.
+//
+// This is the recommended option when the host application already configures
+// OpenTelemetry (its own provider, sampler, resource and exporters): logmanager
+// spans are then emitted through that same provider, which is what allows a
+// logmanager transaction to become part of the application's distributed trace
+// rather than a separate one.
+//
+// Example:
+//
+//	tp := sdktrace.NewTracerProvider(sdktrace.WithBatcher(exporter))
+//	app := logmanager.NewApplication(
+//	    logmanager.WithService("my-service"),
+//	    logmanager.WithTracerProvider(tp),
+//	)
+func WithTracerProvider(tp trace.TracerProvider) Option {
+	return func(app *Application) {
+		if tp != nil {
+			app.tracerProvider = tp
+		}
 	}
 }

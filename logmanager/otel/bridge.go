@@ -90,10 +90,19 @@ func (s *Span) IsNil() bool {
 	return s == nil || s.span == nil
 }
 
-// SetTracerID sets the custom trace ID for correlation
+// SetTracerID sets the custom trace ID for correlation.
+//
+// The value is also recorded as a span attribute (logmanager.trace_id) so the
+// application-level trace ID can be looked up in the tracing backend next to
+// the OpenTelemetry trace ID. Without this attribute the two ID spaces cannot
+// be correlated once the log line has been separated from its span.
 func (s *Span) SetTracerID(traceID string) {
-	if s != nil {
-		s.tracerID = traceID
+	if s == nil {
+		return
+	}
+	s.tracerID = traceID
+	if s.span != nil && traceID != "" {
+		s.span.SetAttributes(attribute.String("logmanager.trace_id", traceID))
 	}
 }
 
@@ -171,4 +180,13 @@ func NewNoopTracer() *Tracer {
 		service: "",
 		enabled: false,
 	}
+}
+
+// ContextWithSpan returns ctx carrying this span, preserving ctx's values,
+// deadline and cancellation.
+func (s *Span) ContextWithSpan(ctx context.Context) context.Context {
+	if s == nil || s.span == nil {
+		return ctx
+	}
+	return trace.ContextWithSpan(ctx, s.span)
 }

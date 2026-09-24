@@ -250,6 +250,9 @@ func NewExporter(config *ExporterConfig) (*Exporter, error) {
 	// Set global tracer provider
 	otel.SetTracerProvider(tracerProvider)
 
+	// Make sure trace context can be injected into / extracted from carriers.
+	EnsureW3CPropagator()
+
 	// Create our tracer wrapper
 	tracer := NewTracer(
 		config.ServiceName,
