@@ -36,7 +36,7 @@ func (t *Transaction) ToContext(ctx context.Context) context.Context {
 
 	ctx = context.WithValue(ctx, txnContextKey, t)
 	if t != nil && t.TxnRecord != nil && t.otelSpan != nil && !t.otelSpan.IsNil() {
-		ctx = context.WithValue(t.otelSpan.Context(), txnContextKey, t)
+		ctx = t.otelSpan.ContextWithSpan(ctx)
 	}
 	return ctx
 }

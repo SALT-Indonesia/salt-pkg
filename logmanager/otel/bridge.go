@@ -181,3 +181,12 @@ func NewNoopTracer() *Tracer {
 		enabled: false,
 	}
 }
+
+// ContextWithSpan returns ctx carrying this span, preserving ctx's values,
+// deadline and cancellation.
+func (s *Span) ContextWithSpan(ctx context.Context) context.Context {
+	if s == nil || s.span == nil {
+		return ctx
+	}
+	return trace.ContextWithSpan(ctx, s.span)
+}

@@ -1,3 +1,11 @@
+## [1.46.1] - 2026-09-24
+- **Fix `Transaction.ToContext` discarding the caller's context when OpenTelemetry is enabled**
+  - With an OTel span attached, `ToContext(ctx)` built its result from the span's own context and dropped `ctx`. Values, deadline and cancellation of the context passed in were lost
+  - Effect in `lmgrpc`: the application `trace_id` context value was missing in handlers, so a service's outgoing call generated a new `trace_id` instead of forwarding the inbound one, splitting the chain
+  - Effect in `eventmanager`: a consumer context's cancellation no longer propagated to handlers
+  - `ToContext` now keeps `ctx` and attaches the span to it via the new `otel.Span.ContextWithSpan`
+  - Added regression tests: `trace_id` propagation across services with and without OpenTelemetry, and `ToContext` context preservation
+
 # Changelog
 
 ## [1.46.0] - 2026-09-23
