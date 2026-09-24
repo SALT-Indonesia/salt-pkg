@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.16.13] - 2026-09-24
+
+### Security
+- Bumped vulnerable dependencies to resolve `govulncheck` findings without changing the Go version (`go` directive unchanged): `golang.org/x/net` v0.58.0, `golang.org/x/crypto` v0.55.0, `golang.org/x/sys` v0.47.0, `golang.org/x/text` v0.41.0, `google.golang.org/grpc` v1.84.0, `go.opentelemetry.io/otel*` v1.46.0
+
+### Changed
+- Updated logmanager dependency from v1.46.1 to v1.46.2 (dependency security fixes)
+
 ## [0.16.12] - 2026-09-14
 
 ### Changed

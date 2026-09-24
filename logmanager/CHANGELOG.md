@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.46.2] - 2026-09-24
+- **Security: bump dependencies to resolve `govulncheck` findings (no Go version change)**
+  - `go` directive unchanged (`1.25.0`); no code or API changes
+  - `golang.org/x/net` v0.53.0 -> v0.58.0, `golang.org/x/crypto` v0.50.0 -> v0.55.0, `golang.org/x/sys` v0.43.0 -> v0.47.0, `golang.org/x/text` v0.36.0 -> v0.41.0
+  - `google.golang.org/grpc` v1.82.1 -> v1.84.0
+  - `go.opentelemetry.io/otel*` (including `otlptracehttp`, `otlptracegrpc`, `sdk`, `trace`) v1.41-1.43 -> v1.46.0
+  - `github.com/rabbitmq/amqp091-go` v1.10.0 -> v1.15.0
+  - `github.com/labstack/echo/v4` v4.13.4 -> v4.15.4
+  - `golang.org/x/*` are pinned to the newest releases that still support Go 1.25 (latest releases require Go 1.26)
+  - Not addressed: Go standard library findings (fixed only by a newer Go toolchain), `golang.org/x/crypto` GO-2026-6355/6354 (need v0.56.0, requires Go 1.26) and `x/crypto/openpgp` (no fix), and `google.golang.org/grpc` GO-2026-6443 (fixed only in an unreleased dev build)
+
 ## [1.46.1] - 2026-09-24
 - **Fix `Transaction.ToContext` discarding the caller's context when OpenTelemetry is enabled**
   - With an OTel span attached, `ToContext(ctx)` built its result from the span's own context and dropped `ctx`. Values, deadline and cancellation of the context passed in were lost
