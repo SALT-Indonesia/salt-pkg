@@ -176,6 +176,24 @@ stub OTLP/HTTP endpoint (an `httptest.Server` that decodes
 `ExportTraceServiceRequest`), or use `tracetest.SpanRecorder` as the
 integration tests do.
 
+A runnable version is in `examples/logmanager/cmd/tracedemo`: an HTTP gateway
+calling two gRPC services in one process, with a built-in stub collector.
+
+```bash
+cd examples
+go run ./logmanager/cmd/tracedemo -otel=none      # application trace_id only
+go run ./logmanager/cmd/tracedemo -otel=provider  # WithTracerProvider
+go run ./logmanager/cmd/tracedemo -otel=builtin   # WithOpenTelemetry(...)
+
+# in another terminal
+curl -H 'X-Trace-Id: 11111111-2222-3333-4444-555555555555' \
+     -H 'traceparent: 00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01' \
+     http://127.0.0.1:18080/hello
+curl http://127.0.0.1:18080/report   # IDs seen by each hop + spans the collector received
+```
+
+Note that `WithOTelEndpoint` expects `host:port` (no scheme).
+
 ## Troubleshooting
 
 | Symptom | Likely cause |

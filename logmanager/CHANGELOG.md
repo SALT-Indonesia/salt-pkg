@@ -6,6 +6,7 @@
   - `ToContext` now keeps `ctx` and attaches the span to it via the new `otel.Span.ContextWithSpan`
   - Added regression tests: `trace_id` propagation across services with and without OpenTelemetry, and `ToContext` context preservation
   - Docs: `docs/DISTRIBUTED_TRACING.md` now documents `ToContext` semantics, `trace_id` propagation with and without OpenTelemetry, and a troubleshooting table; linked from `README.md`
+  - Added runnable example `examples/logmanager/cmd/tracedemo` (HTTP -> gRPC -> gRPC, with a stub OTLP collector; modes: no OTel, `WithTracerProvider`, `WithOpenTelemetry`)
 
 # Changelog
 
